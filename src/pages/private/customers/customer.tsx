@@ -31,6 +31,11 @@ const Customers = () => {
     null,
   );
 
+  const [columnPinning, setColumnPinning] = useState({
+    left: ["mrt-row-select", "name"], // pinned to left
+    right: ["mrt-row-actions"], // pinned to right
+  });
+
   const handleBulkDelete = useCallback(
     async ({ table }: { table: any }) => {
       const selectedIds = table
@@ -59,6 +64,7 @@ const Customers = () => {
       {
         accessorKey: "phone",
         header: "Phone",
+        size: 150,
       },
       {
         accessorKey: "email",
@@ -104,6 +110,9 @@ const Customers = () => {
         columns={columns}
         data={customers}
         isLoading={loading}
+        enableColumnPinning
+        columnPinning={columnPinning}
+        onColumnPinningChange={setColumnPinning}
         enableRowSelection
         enableRowActions
         renderRowActions={({ row }) => (

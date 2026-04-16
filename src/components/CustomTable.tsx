@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React from "react";
+import React, { type Dispatch, type SetStateAction } from "react";
 import {
   MaterialReactTable,
   type MRT_ColumnDef,
@@ -17,10 +17,18 @@ interface CustomTableProps<T extends MRT_RowData> {
   enableSorting?: boolean;
   enablePagination?: boolean;
   enableRowSelection?: boolean;
+  enableColumnPinning?: boolean;
   manualFiltering?: boolean;
   bordered?: boolean;
   enableFullScreenToggle?: boolean;
   enableDensityToggle?: boolean;
+  columnPinning?: {
+    left: string[];
+    right: string[];
+  };
+  onColumnPinningChange?: Dispatch<
+    SetStateAction<{ left: string[]; right: any[] }>
+  >;
   renderRowActions?: (props: any) => React.ReactNode;
   renderDetailPanel?: (props: any) => React.ReactNode;
   renderEmptyRowsFallback?: () => React.ReactNode;
@@ -31,6 +39,10 @@ export function CustomTable<T extends MRT_RowData>({
   columns,
   data,
   isLoading = false,
+  columnPinning = {
+    left: [],
+    right: [],
+  },
   enableRowActions = false,
   enableExpanding = false,
   enableColumnFilters = true,
@@ -38,10 +50,12 @@ export function CustomTable<T extends MRT_RowData>({
   enablePagination = true,
   enableRowSelection = true,
   enableGlobalFilter = true,
+  enableColumnPinning = false,
   manualFiltering = false,
   bordered = false,
   enableFullScreenToggle = false,
   enableDensityToggle = false,
+  onColumnPinningChange = () => {},
   renderRowActions,
   renderDetailPanel,
   renderTopToolbarCustomActions,
@@ -55,18 +69,21 @@ export function CustomTable<T extends MRT_RowData>({
       <MaterialReactTable
         columns={columns}
         data={data}
-        state={{ isLoading }}
+        state={{ isLoading, columnPinning }}
         {...tableProps}
         enableColumnFilters={enableColumnFilters}
         enableSorting={enableSorting}
+        enableColumnPinning={enableColumnPinning}
         enablePagination={enablePagination}
         enableRowSelection={enableRowSelection}
         enableRowActions={enableRowActions}
         enableExpanding={enableExpanding}
         enableGlobalFilter={enableGlobalFilter}
         manualFiltering={manualFiltering}
+        onColumnPinningChange={onColumnPinningChange}
         enableFullScreenToggle={enableFullScreenToggle}
         enableDensityToggle={enableDensityToggle}
+        enableRowVirtualization
         positionActionsColumn="last"
         muiTablePaperProps={{
           sx: () => ({
@@ -100,6 +117,21 @@ export function CustomTable<T extends MRT_RowData>({
         initialState={{
           pagination: { pageSize: 10, pageIndex: 0 },
           showColumnFilters: false,
+        }}
+        displayColumnDefOptions={{
+          "mrt-row-actions": {
+            size: 140,
+            minSize: 140,
+            maxSize: 180,
+            muiTableBodyCellProps: {
+              sx: {
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                overflow: "visible",
+              },
+            },
+          },
         }}
         renderEmptyRowsFallback={renderEmptyRowsFallback}
         renderRowActions={renderRowActions}

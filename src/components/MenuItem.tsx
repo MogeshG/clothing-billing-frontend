@@ -23,7 +23,6 @@ const MenuItem = ({
 
   const hasChildren = !!item.children?.length;
 
-  // ✅ independent state per item
   const isExpanded = openMenus.has(item.href);
 
   const isActive =
@@ -109,7 +108,7 @@ const MenuItem = ({
                       : "text-gray-300 hover:bg-gray-700",
                   )}
                 >
-                  <span className="text-sm">{child.icon}</span>
+                  <span>{child.icon}</span>
                 </NavLink>
               </Tooltip>
             );
