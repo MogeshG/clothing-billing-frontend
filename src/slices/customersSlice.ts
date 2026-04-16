@@ -166,6 +166,24 @@ export const deleteCustomers = createAsyncThunk(
   },
 );
 
+export const bulkCreateCustomers = createAsyncThunk(
+  "customers/bulkCreateCustomers",
+  async (customers: Omit<Customer, "id" | "createdAt" | "updatedAt">[]) => {
+    return new Promise<Customer[]>((resolve) => {
+      setTimeout(() => {
+        const newCustomers = customers.map((customer) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          ...customer,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+        mockCustomers.push(...newCustomers);
+        resolve(newCustomers);
+      }, 500);
+    });
+  },
+);
+
 const customersSlice = createSlice({
   name: "customers",
   initialState,

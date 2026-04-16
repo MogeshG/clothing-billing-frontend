@@ -2,7 +2,7 @@
 import { useState, useCallback, useMemo } from "react";
 import type { MRT_ColumnDef } from "material-react-table";
 import { useDispatch } from "react-redux";
-import { Alert, IconButton } from "@mui/material";
+import { Alert, IconButton, ButtonGroup } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { deleteCustomers, clearError } from "../../../slices/customersSlice";
@@ -12,9 +12,10 @@ import CustomButton from "../../../components/CustomButton";
 import AddCustomerDialog from "./AddCustomerDialog";
 import EditCustomerDialog from "./EditCustomerDialog";
 import DeleteCustomerDialog from "./DeleteCustomerDialog";
+import BulkCustomerDialog from "./BulkCustomerDialog";
 import { CustomTable } from "../../../components/CustomTable";
 import type { AppDispatch } from "../../../store";
-import { DeleteOutlined, EditOutlined } from "@mui/icons-material";
+import { DeleteOutlined, EditOutlined, UploadFile } from "@mui/icons-material";
 
 const Customers = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -22,6 +23,8 @@ const Customers = () => {
 
   // Modals state
   const [openAddModal, setOpenAddModal] = useState(false);
+  const [openBulkDialog, setOpenBulkDialog] = useState(false);
+
   const [openEditModal, setOpenEditModal] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
@@ -79,15 +82,17 @@ const Customers = () => {
     <div className="flex flex-col w-full space-y-4 p-3 overflow-y-auto">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-800">Customers</h1>
-        <div className="flex justify-between items-center">
+        <ButtonGroup variant="contained">
           <CustomButton
-            variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setOpenAddModal(true)}
           >
             Add Customer
           </CustomButton>
-        </div>
+          <CustomButton onClick={() => setOpenBulkDialog(true)}>
+            <UploadFile />
+          </CustomButton>
+        </ButtonGroup>
       </div>
 
       {error && (
@@ -169,6 +174,11 @@ const Customers = () => {
         open={openDeleteDialog}
         customerId={selectedCustomer?.id || null}
         onClose={() => setOpenDeleteDialog(false)}
+      />
+      <BulkCustomerDialog
+        open={openBulkDialog}
+        onClose={() => setOpenBulkDialog(false)}
+        refetch={refetch}
       />
     </div>
   );

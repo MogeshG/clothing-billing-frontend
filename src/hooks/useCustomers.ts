@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
-import { fetchCustomers } from "../slices/customersSlice";
+import { fetchCustomers, bulkCreateCustomers } from "../slices/customersSlice";
 
 export const useCustomers = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -19,5 +19,6 @@ export const useCustomers = () => {
     error,
     selectedCustomers,
     refetch: () => dispatch(fetchCustomers()),
+    bulkCreateCustomers,
   };
 };
