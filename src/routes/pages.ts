@@ -16,5 +16,9 @@ export const AddProductPage = lazy(
   () => import("../pages/private/products/add-product"),
 );
 export const EditProductPage = lazy(
-  () => import("../pages/private/products/edit-product")
-)
+  () => import("../pages/private/products/edit-product"),
+);
+
+export const ProductCategoriesPage = lazy(
+  () => import("../pages/private/product-categories/product-categories"),
+);

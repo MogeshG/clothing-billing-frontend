@@ -7,6 +7,7 @@ import {
   DashboardPage,
   InventoryPage,
   LoginPage,
+  ProductCategoriesPage,
   ProductPage,
 } from "./pages";
 import EditProductPage from "../pages/private/products/edit-product";
@@ -60,6 +61,10 @@ export const privateRoutes = [
       {
         path: "products/edit-product/:id",
         element: <EditProductPage />,
+      },
+      {
+        path: "product-categories",
+        element: <ProductCategoriesPage />,
       },
     ],
   },

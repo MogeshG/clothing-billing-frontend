@@ -11,7 +11,7 @@ import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import CategoryIcon from "@mui/icons-material/CategoryOutlined";
-import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
+import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 
 export interface MenuItem {
   title: string;

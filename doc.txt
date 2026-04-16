@@ -1,0 +1,4 @@
+Purchase flow
+PurchaseItem → Batch created → StockMovement(IN)
+Sale flow
+InvoiceItem → StockMovement(OUT) → Batch deduction (FIFO)
