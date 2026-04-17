@@ -34,12 +34,12 @@ const UpdatePurchasePage = () => {
       dispatch(fetchPurchases());
     } else {
       setFormData({
-        purchase_no: purchase.purchase_no,
+        purchaseNo: purchase.purchaseNo,
         status: purchase.status,
-        vendor_name: purchase.vendor_name,
-        vendor_phone: purchase.vendor_phone,
-        vendor_gstin: purchase.vendor_gstin,
-        purchase_date: new Date(purchase.purchase_date)
+        vendorName: purchase.vendorName,
+        vendorPhone: purchase.vendorPhone,
+        vendorGstin: purchase.vendorGstin,
+        purchaseDate: new Date(purchase.purchaseDate)
           .toISOString()
           .split("T")[0],
       });
@@ -53,12 +53,12 @@ const UpdatePurchasePage = () => {
 
     if (isReadOnly) return true; // Skip validation for read-only
 
-    if (!formData.purchase_no?.trim()) {
-      newErrors.purchase_no = "Purchase No required";
+    if (!formData.purchaseNo?.trim()) {
+      newErrors.purchaseNo = "Purchase No required";
       valid = false;
     }
-    if (!formData.vendor_name?.trim()) {
-      newErrors.vendor_name = "Vendor name required";
+    if (!formData.vendorName?.trim()) {
+      newErrors.vendorName = "Vendor name required";
       valid = false;
     }
 
@@ -77,15 +77,15 @@ const UpdatePurchasePage = () => {
 
     const updateData: UpdatePurchaseForm & { id: string } = {
       id: id!,
-      purchase_no: formData.purchase_no?.trim(),
+      purchaseNo: formData.purchaseNo?.trim(),
       status: (formData.status || purchase.status!) as
         | "DRAFT"
         | "COMPLETED"
         | "CANCELLED",
-      vendor_name: formData.vendor_name?.trim(),
-      vendor_phone: formData.vendor_phone?.trim(),
-      vendor_gstin: formData.vendor_gstin?.trim(),
-      purchase_date: formData.purchase_date,
+      vendorName: formData.vendorName?.trim(),
+      vendorPhone: formData.vendorPhone?.trim(),
+      vendorGstin: formData.vendorGstin?.trim(),
+      purchaseDate: formData.purchaseDate,
     };
 
     setIsSubmitting(true);
@@ -132,22 +132,22 @@ const UpdatePurchasePage = () => {
                 <CustomInput
                   label="Purchase No *"
                   placeholder="PURCHASE-001"
-                  value={formData.purchase_no || ""}
+                  value={formData.purchaseNo || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, purchase_no: e.target.value })
+                    setFormData({ ...formData, purchaseNo: e.target.value })
                   }
                   disabled={isReadOnly}
-                  hasError={!!errors.purchase_no}
-                  errorText={errors.purchase_no}
+                  hasError={!!errors.purchaseNo}
+                  errorText={errors.purchaseNo}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 4 }}>
                 <CustomInput
                   label="Purchase Date"
                   type="date"
-                  value={formData.purchase_date || ""}
+                  value={formData.purchaseDate || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, purchase_date: e.target.value })
+                    setFormData({ ...formData, purchaseDate: e.target.value })
                   }
                   disabled={isReadOnly}
                 />
@@ -178,22 +178,22 @@ const UpdatePurchasePage = () => {
                 <CustomInput
                   label="Vendor Name *"
                   placeholder="ABC Vendor"
-                  value={formData.vendor_name || ""}
+                  value={formData.vendorName || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, vendor_name: e.target.value })
+                    setFormData({ ...formData, vendorName: e.target.value })
                   }
                   disabled={isReadOnly}
-                  hasError={!!errors.vendor_name}
-                  errorText={errors.vendor_name}
+                  hasError={!!errors.vendorName}
+                  errorText={errors.vendorName}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 4 }}>
                 <CustomInput
                   label="Vendor Phone"
                   placeholder="9876543210"
-                  value={formData.vendor_phone || ""}
+                  value={formData.vendorPhone || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, vendor_phone: e.target.value })
+                    setFormData({ ...formData, vendorPhone: e.target.value })
                   }
                   disabled={isReadOnly}
                 />
@@ -202,9 +202,9 @@ const UpdatePurchasePage = () => {
                 <CustomInput
                   label="Vendor GSTIN"
                   placeholder="27ABCDE1234F1Z5"
-                  value={formData.vendor_gstin || ""}
+                  value={formData.vendorGstin || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, vendor_gstin: e.target.value })
+                    setFormData({ ...formData, vendorGstin: e.target.value })
                   }
                   disabled={isReadOnly}
                 />
@@ -218,7 +218,7 @@ const UpdatePurchasePage = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="text-gray-500">Sub Total:</span>
-                  <div>₹{Number(purchase.sub_total).toLocaleString()}</div>
+                  <div>₹{Number(purchase.subTotal).toLocaleString()}</div>
                 </div>
                 <div>
                   <span className="text-gray-500">Discount:</span>
@@ -226,11 +226,11 @@ const UpdatePurchasePage = () => {
                 </div>
                 <div>
                   <span className="text-gray-500">Tax:</span>
-                  <div>₹{Number(purchase.tax_amount).toLocaleString()}</div>
+                  <div>₹{Number(purchase.taxAmount).toLocaleString()}</div>
                 </div>
                 <div>
                   <span className="font-semibold">
-                    Total: ₹{Number(purchase.total_amount).toLocaleString()}
+                    Total: ₹{Number(purchase.totalAmount).toLocaleString()}
                   </span>
                 </div>
               </div>

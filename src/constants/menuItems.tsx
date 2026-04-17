@@ -6,14 +6,20 @@ import Inventory2Icon from "@mui/icons-material/Inventory2";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import SettingsIcon from "@mui/icons-material/Settings";
 import AssessmentIcon from "@mui/icons-material/Assessment";
-import ReceiptIcon from "@mui/icons-material/Receipt";
+import ReceiptIcon from "@mui/icons-material/ReceiptOutlined";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import InventoryIcon from "@mui/icons-material/Inventory";
+import CurrencyBitcoinOutlinedIcon from "@mui/icons-material/CurrencyBitcoinOutlined";
+import AllInboxOutlinedIcon from "@mui/icons-material/AllInboxOutlined";
 import CategoryIcon from "@mui/icons-material/CategoryOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import StoreIcon from "@mui/icons-material/Store";
-import { PersonOutlined, ShoppingCartOutlined } from "@mui/icons-material";
+import {
+  EditOutlined,
+  PersonOutlined,
+  ShoppingCartOutlined,
+} from "@mui/icons-material";
 
 export interface MenuItem {
   title: string;
@@ -47,6 +53,28 @@ export const MENU_ITEMS: MenuItem[] = [
         title: "Purchases",
         href: "/purchases",
         icon: <ShoppingCartOutlined />,
+      },
+    ],
+  },
+  {
+    title: "Stocks",
+    href: "/stocks",
+    icon: <AllInboxOutlinedIcon />,
+    children: [
+      {
+        title: "Batches",
+        href: "/batches",
+        icon: <CurrencyBitcoinOutlinedIcon />,
+      },
+      {
+        title: "Stock Adjustment",
+        href: "/stock-adjustments",
+        icon: <EditOutlined />,
+      },
+      {
+        title: "Stock Movements",
+        href: "/stock-movements",
+        icon: <ReceiptIcon />,
       },
     ],
   },

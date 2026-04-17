@@ -41,7 +41,24 @@ export const CreatePurchasePage = lazy(
 export const UpdatePurchasePage = lazy(
   () => import("../pages/private/purchases/update-purchase"),
 );
-
 export const ViewPurchasePage = lazy(
   () => import("../pages/private/purchases/view-purchase"),
+);
+
+export const BatchesPage = lazy(
+  () => import("../pages/private/batches/batches"),
+);
+export const UpdateBatchPage = lazy(
+  () => import("../pages/private/batches/update-batch"),
+);
+
+export const StockMovementsPage = lazy(
+  () => import("../pages/private/stock-movements/stock-movements.tsx"),
+);
+
+export const StockAdjustmentsPage = lazy(
+  () => import("../pages/private/stock-adjustments/stock-adjustments.tsx"),
+);
+export const NewStockAdjustmentPage = lazy(
+  () => import("../pages/private/stock-adjustments/new-adjustment.tsx"),
 );

@@ -18,18 +18,18 @@ import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
 type ItemForm = {
-  item_name: string;
-  item_type: string;
-  hsn_code: string;
+  itemName: string;
+  itemType: string;
+  hsnCode: string;
   quantity: number;
   price: number;
-  cgst_percent: number;
-  sgst_percent: number;
-  igst_percent: number;
+  cgstPercent: number;
+  sgstPercent: number;
+  igstPercent: number;
   sku?: string;
   size?: string;
   color?: string;
-  product_variant_id?: string;
+  productVariantId?: string;
 };
 
 const CreatePurchasePage = () => {
@@ -50,35 +50,35 @@ const CreatePurchasePage = () => {
     const newErrors: Record<string, string> = {};
     let valid = true;
 
-    if (!formData.purchase_no?.trim()) {
-      newErrors.purchase_no = "Purchase No required";
+    if (!formData.purchaseNo?.trim()) {
+      newErrors.purchaseNo = "Purchase No required";
       valid = false;
     }
-    if (!formData.vendor_name?.trim()) {
-      newErrors.vendor_name = "Vendor name required";
+    if (!formData.vendorName?.trim()) {
+      newErrors.vendorName = "Vendor name required";
       valid = false;
     }
-    if (formData.vendor_phone && !isValidPhone(formData.vendor_phone)) {
-      newErrors.vendor_phone = "Invalid Phone number";
+    if (formData.vendorPhone && !isValidPhone(formData.vendorPhone)) {
+      newErrors.vendorPhone = "Invalid Phone number";
       valid = false;
     }
-    if (formData.vendor_gstin && !isValidGST(formData.vendor_gstin)) {
-      newErrors.vendor_gstin = "Invalid GSTIN";
+    if (formData.vendorGstin && !isValidGST(formData.vendorGstin)) {
+      newErrors.vendorGstin = "Invalid GSTIN";
       valid = false;
     }
 
     // Validate items
     items.forEach((item, index) => {
-      if (!item.item_type) {
-        newErrors[`item_type_${index}`] = "Item type required";
+      if (!item.itemType) {
+        newErrors[`itemType_${index}`] = "Item type required";
         valid = false;
       }
-      if (!item.item_name.trim()) {
-        newErrors[`item_name_${index}`] = "Item name required";
+      if (!item.itemName.trim()) {
+        newErrors[`itemName_${index}`] = "Item name required";
         valid = false;
       }
-      if (!item.hsn_code.trim()) {
-        newErrors[`hsn_code_${index}`] = "HSN code required";
+      if (!item.hsnCode.trim()) {
+        newErrors[`hsnCode_${index}`] = "HSN code required";
         valid = false;
       }
       if (item.quantity <= 0) {
@@ -99,18 +99,18 @@ const CreatePurchasePage = () => {
   const handleDraftSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Minimal validation for draft
-    if (!formData.purchase_no?.trim() || items.length === 0) {
+    if (!formData.purchaseNo?.trim() || items.length === 0) {
       alert("Purchase No and at least one item required for draft");
       return;
     }
 
     const submitData: AddPurchaseForm = {
-      purchase_no: formData.purchase_no!.trim(),
-      vendor_name: formData.vendor_name?.trim() || undefined,
-      vendor_phone: formData.vendor_phone?.trim() || undefined,
-      vendor_gstin: formData.vendor_gstin?.trim() || undefined,
-      purchase_date:
-        formData.purchase_date || new Date().toISOString().split("T")[0],
+      purchaseNo: formData.purchaseNo!.trim(),
+      vendorName: formData.vendorName?.trim() || undefined,
+      vendorPhone: formData.vendorPhone?.trim() || undefined,
+      vendorGstin: formData.vendorGstin?.trim() || undefined,
+      purchaseDate:
+        formData.purchaseDate || new Date().toISOString().split("T")[0],
       items,
     };
 
@@ -130,12 +130,12 @@ const CreatePurchasePage = () => {
     if (!validateForm()) return;
 
     const submitData: AddPurchaseForm = {
-      purchase_no: formData.purchase_no!.trim(),
-      vendor_name: formData.vendor_name?.trim() || undefined,
-      vendor_phone: formData.vendor_phone?.trim() || undefined,
-      vendor_gstin: formData.vendor_gstin?.trim() || undefined,
-      purchase_date:
-        formData.purchase_date || new Date().toISOString().split("T")[0],
+      purchaseNo: formData.purchaseNo!.trim(),
+      vendorName: formData.vendorName?.trim() || undefined,
+      vendorPhone: formData.vendorPhone?.trim() || undefined,
+      vendorGstin: formData.vendorGstin?.trim() || undefined,
+      purchaseDate:
+        formData.purchaseDate || new Date().toISOString().split("T")[0],
       items,
     };
 
@@ -177,16 +177,16 @@ const CreatePurchasePage = () => {
         "";
       updateItem(
         index,
-        "item_name",
+        "itemName",
         `${productName} - ${v.sku || v.size}/${v.color}`,
       );
       updateItem(index, "sku", v.sku || "");
       updateItem(index, "size", v.size);
       updateItem(index, "color", v.color);
       updateItem(index, "price", v.costPrice);
-      updateItem(index, "cgst_percent", 9);
-      updateItem(index, "sgst_percent", 9);
-      updateItem(index, "item_type", "FINISHED");
+      updateItem(index, "cgstPercent", 9);
+      updateItem(index, "sgstPercent", 9);
+      updateItem(index, "itemType", "FINISHED");
     } else {
       console.log("no option found for variantId:", variantId);
     }
@@ -196,18 +196,18 @@ const CreatePurchasePage = () => {
     setItems([
       ...items,
       {
-        item_name: "",
-        item_type: "RAW",
-        hsn_code: "",
+        itemName: "",
+        itemType: "RAW",
+        hsnCode: "",
         quantity: 1,
         price: 0,
-        cgst_percent: 0,
-        sgst_percent: 0,
-        igst_percent: 0,
+        cgstPercent: 0,
+        sgstPercent: 0,
+        igstPercent: 0,
         sku: "",
         size: "",
         color: "",
-        product_variant_id: "",
+        productVariantId: "",
       },
     ]);
   };
@@ -233,7 +233,7 @@ const CreatePurchasePage = () => {
   return (
     <div className="flex flex-col m-2 w-full space-y-4 p-3 overflow-y-auto">
       <h1 className="text-3xl font-bold text-gray-800">Create Purchase</h1>
-      <div className="flex flex-col w-full bg-white space-y-6 p-6 rounded-md mx-auto max-w-6xl">
+      <div className="flex flex-col w-full bg-white space-y-6 p-6 rounded-md mx-auto">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <Alert severity="error" onClose={() => dispatch(clearError())}>
@@ -251,26 +251,24 @@ const CreatePurchasePage = () => {
                 <CustomInput
                   label="Purchase No *"
                   placeholder="PURCHASE-001"
-                  value={formData.purchase_no || ""}
+                  value={formData.purchaseNo || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, purchase_no: e.target.value })
+                    setFormData({ ...formData, purchaseNo: e.target.value })
                   }
-                  hasError={!!errors.purchase_no}
-                  errorText={errors.purchase_no}
+                  hasError={!!errors.purchaseNo}
+                  errorText={errors.purchaseNo}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 4 }}>
                 <CustomDatePicker
                   label="Purchase Date"
                   value={
-                    formData.purchase_date
-                      ? dayjs(formData.purchase_date)
-                      : null
+                    formData.purchaseDate ? dayjs(formData.purchaseDate) : null
                   }
                   onChange={(val: Dayjs | null) =>
                     setFormData({
                       ...formData,
-                      purchase_date: val ? val.toISOString() : "",
+                      purchaseDate: val ? val.toISOString() : "",
                     })
                   }
                 />
@@ -279,21 +277,21 @@ const CreatePurchasePage = () => {
                 <CustomInput
                   label="Vendor Name *"
                   placeholder="ABC Vendor"
-                  value={formData.vendor_name || ""}
+                  value={formData.vendorName || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, vendor_name: e.target.value })
+                    setFormData({ ...formData, vendorName: e.target.value })
                   }
-                  hasError={!!errors.vendor_name}
-                  errorText={errors.vendor_name}
+                  hasError={!!errors.vendorName}
+                  errorText={errors.vendorName}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 4 }}>
                 <CustomInput
                   label="Vendor Phone"
                   placeholder="9876543210"
-                  value={formData.vendor_phone || ""}
+                  value={formData.vendorPhone || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, vendor_phone: e.target.value })
+                    setFormData({ ...formData, vendorPhone: e.target.value })
                   }
                 />
               </Grid>
@@ -301,9 +299,9 @@ const CreatePurchasePage = () => {
                 <CustomInput
                   label="Vendor GSTIN"
                   placeholder="27ABCDE1234F1Z5"
-                  value={formData.vendor_gstin || ""}
+                  value={formData.vendorGstin || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, vendor_gstin: e.target.value })
+                    setFormData({ ...formData, vendorGstin: e.target.value })
                   }
                 />
               </Grid>
@@ -338,11 +336,11 @@ const CreatePurchasePage = () => {
                     <Grid size={2}>
                       <CustomSelect
                         label="Item Type *"
-                        value={item.item_type}
+                        value={item.itemType}
                         onChange={(e) =>
                           updateItem(
                             index,
-                            "item_type",
+                            "itemType",
                             e.target.value as string,
                           )
                         }
@@ -353,43 +351,43 @@ const CreatePurchasePage = () => {
                       />
                     </Grid>
                     <Grid size={3}>
-                      {item.item_type === "RAW" ? (
+                      {item.itemType === "RAW" ? (
                         <CustomInput
                           label="Item Name *"
-                          value={item.item_name}
+                          value={item.itemName}
                           onChange={(e) =>
-                            updateItem(index, "item_name", e.target.value)
+                            updateItem(index, "itemName", e.target.value)
                           }
-                          hasError={!!errors[`item_name_${index}`]}
-                          errorText={errors[`item_name_${index}`]}
+                          hasError={!!errors[`itemName_${index}`]}
+                          errorText={errors[`itemName_${index}`]}
                         />
                       ) : (
                         <CustomSelect
                           label="Select Product Variant *"
-                          value={item.product_variant_id || ""}
+                          value={item.productVariantId || ""}
                           onChange={(e) => {
                             const val = e.target.value as string;
-                            updateItem(index, "product_variant_id", val);
+                            updateItem(index, "productVariantId", val);
                             handleVariantSelect(index, val);
                           }}
                           options={variantOptions.map((opt) => ({
                             label: opt.label,
                             value: opt.value,
                           }))}
-                          hasError={!!errors[`item_name_${index}`]}
-                          errorText={errors[`item_name_${index}`]}
+                          hasError={!!errors[`itemName_${index}`]}
+                          errorText={errors[`itemName_${index}`]}
                         />
                       )}
                     </Grid>
                     <Grid size={2}>
                       <CustomInput
                         label="HSN Code *"
-                        value={item.hsn_code}
+                        value={item.hsnCode}
                         onChange={(e) =>
-                          updateItem(index, "hsn_code", e.target.value)
+                          updateItem(index, "hsnCode", e.target.value)
                         }
-                        hasError={!!errors[`hsn_code_${index}`]}
-                        errorText={errors[`hsn_code_${index}`]}
+                        hasError={!!errors[`hsnCode_${index}`]}
+                        errorText={errors[`hsnCode_${index}`]}
                       />
                     </Grid>
                     <Grid size={2}>
@@ -426,11 +424,11 @@ const CreatePurchasePage = () => {
                       <CustomInput
                         label="CGST %"
                         type="number"
-                        value={item.cgst_percent}
+                        value={item.cgstPercent}
                         onChange={(e) =>
                           updateItem(
                             index,
-                            "cgst_percent",
+                            "cgstPercent",
                             parseFloat(e.target.value) || 0,
                           )
                         }
@@ -440,11 +438,11 @@ const CreatePurchasePage = () => {
                       <CustomInput
                         label="SGST %"
                         type="number"
-                        value={item.sgst_percent}
+                        value={item.sgstPercent}
                         onChange={(e) =>
                           updateItem(
                             index,
-                            "sgst_percent",
+                            "sgstPercent",
                             parseFloat(e.target.value) || 0,
                           )
                         }

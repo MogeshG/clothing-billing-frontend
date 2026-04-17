@@ -30,7 +30,7 @@ const EditVendorPage = () => {
         email: vendor.email || "",
         address: vendor.address || "",
         gstin: vendor.gstin || "",
-        company_name: vendor.company_name || "",
+        companyName: vendor.companyName || "",
         city: vendor.city || "",
         state: vendor.state || "",
         country: vendor.country,
@@ -75,7 +75,7 @@ const EditVendorPage = () => {
       email: formData.email?.trim() || undefined,
       address: formData.address?.trim() || undefined,
       gstin: formData.gstin?.trim() || undefined,
-      company_name: formData.company_name?.trim() || undefined,
+      companyName: formData.companyName?.trim() || undefined,
       city: formData.city?.trim() || undefined,
       state: formData.state?.trim() || undefined,
       country: formData.country || "India",
@@ -159,8 +159,8 @@ const EditVendorPage = () => {
                 <CustomInput
                   label="Company Name"
                   placeholder="Enter company name"
-                  value={formData.company_name || ""}
-                  onChange={(e) => handleChange("company_name", e.target.value)}
+                  value={formData.companyName || ""}
+                  onChange={(e) => handleChange("companyName", e.target.value)}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>

@@ -22,35 +22,35 @@ const Purchases = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { purchases, loading, error } = usePurchases();
-  const vendorFilter = searchParams.get("vendor_name") || "";
+  const vendorFilter = searchParams.get("vendorName") || "";
   const filteredPurchases = useMemo(() => {
     if (!vendorFilter) return purchases;
     return purchases.filter(
       (p) =>
-        p.vendor_name?.toLowerCase().includes(vendorFilter.toLowerCase()) ||
-        p.vendor_phone?.includes(vendorFilter),
+        p.vendorName?.toLowerCase().includes(vendorFilter.toLowerCase()) ||
+        p.vendorPhone?.includes(vendorFilter),
     );
   }, [purchases, vendorFilter]);
   const [columnFilters, setColumnFilters] = useState<MRT_ColumnFiltersState>(
     [],
   );
   const [columnPinning, setColumnPinning] = useState({
-    left: ["mrt-row-select", "purchase_no", "status"],
+    left: ["mrt-row-select", "purchaseNo", "status"],
     right: ["mrt-row-actions"],
   });
 
   const columns = useMemo<MRT_ColumnDef<Purchase>[]>(
     () => [
       {
-        accessorKey: "purchase_no",
+        accessorKey: "purchaseNo",
         header: "Purchase No",
       },
       {
-        accessorKey: "vendor_name",
+        accessorKey: "vendorName",
         header: "Vendor",
       },
       {
-        accessorKey: "vendor_phone",
+        accessorKey: "vendorPhone",
         header: "Phone",
         size: 140,
       },
@@ -72,13 +72,13 @@ const Purchases = () => {
         ),
       },
       {
-        accessorKey: "total_amount",
+        accessorKey: "totalAmount",
         header: "Total Amount",
         Cell: ({ renderedCellValue }) =>
           `₹${Number(renderedCellValue).toLocaleString()}`,
       },
       {
-        accessorKey: "purchase_date",
+        accessorKey: "purchaseDate",
         header: "Date",
         Cell: ({ renderedCellValue }) =>
           new Date(renderedCellValue as string).toLocaleDateString("en-IN"),
@@ -90,25 +90,25 @@ const Purchases = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
-    const vendor = params.get("vendor_name");
+    const vendor = params.get("vendorName");
 
     setColumnFilters([
       {
-        id: "vendor_name",
+        id: "vendorName",
         value: vendor,
       },
     ]);
   }, []);
 
   useEffect(() => {
-    const vendorFilter = columnFilters.find((f) => f.id === "vendor_name");
+    const vendorFilter = columnFilters.find((f) => f.id === "vendorName");
 
     const next = new URLSearchParams(searchParams);
 
     if (vendorFilter?.value) {
-      next.set("vendor_name", String(vendorFilter.value));
+      next.set("vendorName", String(vendorFilter.value));
     } else {
-      next.delete("vendor_name");
+      next.delete("vendorName");
     }
 
     setSearchParams(next, { replace: true });

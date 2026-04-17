@@ -5,7 +5,7 @@ export interface Vendor {
   email?: string;
   address?: string;
   gstin?: string;
-  company_name: string;
+  companyName: string;
   city?: string;
   state?: string;
   country: string;
@@ -19,7 +19,7 @@ export interface AddVendorForm {
   email?: string;
   address?: string;
   gstin?: string;
-  company_name: string;
+  companyName: string;
   city?: string;
   state?: string;
   country?: string;

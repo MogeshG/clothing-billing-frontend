@@ -27,19 +27,19 @@ const ViewPurchasePage = () => {
   const itemsColumns = useMemo<MRT_ColumnDef<PurchaseItem>[]>(
     () => [
       {
-        accessorKey: "item_name",
+        accessorKey: "itemName",
         header: "Item Name",
         size: 200,
       },
       {
-        accessorKey: "item_type",
+        accessorKey: "itemType",
         header: "Type",
         Cell: ({ row }) => (
           <Chip
-            label={row.original.item_type}
+            label={row.original.itemType}
             size="small"
             color={
-              row.original.item_type === "finished" ? "primary" : "secondary"
+              row.original.itemType === "finished" ? "primary" : "secondary"
             }
           />
         ),
@@ -57,7 +57,7 @@ const ViewPurchasePage = () => {
         header: "Color",
       },
       {
-        accessorKey: "hsn_code",
+        accessorKey: "hsnCode",
         header: "HSN Code",
       },
       {
@@ -73,17 +73,17 @@ const ViewPurchasePage = () => {
         size: 100,
       },
       {
-        accessorKey: "cgst_percent",
+        accessorKey: "cgstPercent",
         header: "CGST%",
         size: 120,
       },
       {
-        accessorKey: "sgst_percent",
+        accessorKey: "sgstPercent",
         header: "SGST%",
         size: 120,
       },
       {
-        accessorKey: "igst_percent",
+        accessorKey: "igstPercent",
         header: "IGST%",
         size: 120,
       },
@@ -154,7 +154,7 @@ const ViewPurchasePage = () => {
             <div className="flex items-center">
               <p className=" text-gray-500 w-40">Purchase No</p>
               <span className="text-gray-500 mr-2">:</span>
-              <p className="text-base font-medium">{purchase.purchase_no}</p>
+              <p className="text-base font-medium">{purchase.purchaseNo}</p>
             </div>
           </Grid>
 
@@ -164,7 +164,7 @@ const ViewPurchasePage = () => {
               <p className=" text-gray-500 w-40">Purchase Date</p>
               <span className="text-gray-500 mr-2">:</span>
               <p className="text-base font-medium">
-                {new Date(purchase.purchase_date).toLocaleDateString()}
+                {new Date(purchase.purchaseDate).toLocaleDateString()}
               </p>
             </div>
           </Grid>
@@ -189,7 +189,7 @@ const ViewPurchasePage = () => {
               <p className=" text-gray-500 w-40">Vendor Name</p>
               <span className="text-gray-500 mr-2">:</span>
               <p className="text-base font-medium">
-                {purchase.vendor_name || "N/A"}
+                {purchase.vendorName || "N/A"}
               </p>
             </div>
           </Grid>
@@ -200,7 +200,7 @@ const ViewPurchasePage = () => {
               <p className=" text-gray-500 w-40">Vendor Phone</p>
               <span className="text-gray-500 mr-2">:</span>
               <p className="text-base font-medium">
-                {purchase.vendor_phone || "N/A"}
+                {purchase.vendorPhone || "N/A"}
               </p>
             </div>
           </Grid>
@@ -211,7 +211,7 @@ const ViewPurchasePage = () => {
               <p className=" text-gray-500 w-40">Vendor GSTIN</p>
               <span className="text-gray-500 mr-2">:</span>
               <p className="text-base font-medium">
-                {purchase.vendor_gstin || "N/A"}
+                {purchase.vendorGstin || "N/A"}
               </p>
             </div>
           </Grid>
@@ -241,7 +241,7 @@ const ViewPurchasePage = () => {
               <div className="flex flex-col">
                 <span className="text-gray-600">Sub Total</span>
                 <span className="text-xl font-bold text-gray-900">
-                  {formatCurrency(purchase.sub_total)}
+                  {formatCurrency(purchase.subTotal)}
                 </span>
               </div>
               <div className="flex flex-col">
@@ -253,13 +253,13 @@ const ViewPurchasePage = () => {
               <div className="flex flex-col">
                 <span className="text-gray-600">Tax Amount</span>
                 <span className="text-xl font-semibold">
-                  {formatCurrency(purchase.tax_amount)}
+                  {formatCurrency(purchase.taxAmount)}
                 </span>
               </div>
               <div className="flex flex-col border-l border-gray-200 pl-6">
                 <span className="text-gray-600">Grand Total</span>
                 <span className="text-3xl font-bold text-gray-900">
-                  {formatCurrency(purchase.total_amount)}
+                  {formatCurrency(purchase.totalAmount)}
                 </span>
               </div>
             </div>

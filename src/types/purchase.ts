@@ -1,15 +1,15 @@
 export interface Purchase {
   id: string;
-  purchase_no: string;
+  purchaseNo: string;
   status: "DRAFT" | "COMPLETED" | "CANCELLED";
-  vendor_name?: string;
-  vendor_phone?: string;
-  vendor_gstin?: string;
-  sub_total: number;
+  vendorName?: string;
+  vendorPhone?: string;
+  vendorGstin?: string;
+  subTotal: number;
   discount: number;
-  tax_amount: number;
-  total_amount: number;
-  purchase_date: string;
+  taxAmount: number;
+  totalAmount: number;
+  purchaseDate: string;
   createdAt: string;
   updatedAt: string;
   items: PurchaseItem[];
@@ -17,53 +17,53 @@ export interface Purchase {
 
 export interface PurchaseItem {
   id: string;
-  purchase_id: string;
-  product_variant_id?: string;
-  item_name: string;
-  item_type: string;
+  purchaseId: string;
+  productVariantId?: string;
+  itemName: string;
+  itemType: string;
   sku?: string;
   size?: string;
   color?: string;
-  hsn_code: string;
+  hsnCode: string;
   quantity: number;
   price: number;
-  cgst_percent: number;
-  sgst_percent: number;
-  igst_percent: number;
+  cgstPercent: number;
+  sgstPercent: number;
+  igstPercent: number;
   total: number;
   createdAt: string;
 }
 
 export interface AddPurchaseForm {
-  purchase_no: string;
-  vendor_name?: string;
-  vendor_phone?: string;
-  vendor_gstin?: string;
-  purchase_date: string;
+  purchaseNo: string;
+  vendorName?: string;
+  vendorPhone?: string;
+  vendorGstin?: string;
+  purchaseDate: string;
   items: Array<{
-    item_name: string;
-    item_type: string;
+    itemName: string;
+    itemType: string;
     sku?: string;
     size?: string;
     color?: string;
-    hsn_code: string;
+    hsnCode: string;
     quantity: number;
     price: number;
-    cgst_percent: number;
-    sgst_percent: number;
-    igst_percent: number;
+    cgstPercent: number;
+    sgstPercent: number;
+    igstPercent: number;
   }>;
 }
 
 export interface UpdatePurchaseForm {
-  purchase_no?: string;
+  purchaseNo?: string;
   status?: "DRAFT" | "COMPLETED" | "CANCELLED";
-  vendor_name?: string;
-  vendor_phone?: string;
-  vendor_gstin?: string;
-  sub_total?: number;
+  vendorName?: string;
+  vendorPhone?: string;
+  vendorGstin?: string;
+  subTotal?: number;
   discount?: number;
-  tax_amount?: number;
-  total_amount?: number;
-  purchase_date?: string;
+  taxAmount?: number;
+  totalAmount?: number;
+  purchaseDate?: string;
 }

@@ -63,7 +63,7 @@ const Vendors = () => {
         size: 150,
       },
       {
-        accessorKey: "company_name",
+        accessorKey: "companyName",
         header: "Company",
       },
       {
@@ -124,7 +124,7 @@ const Vendors = () => {
           <div className="flex gap-1">
             <IconButton
               onClick={() => {
-                navigate(`/purchases?vendor_name=${row.original.company_name}`);
+                navigate(`/purchases?vendor_name=${row.original.companyName}`);
               }}
               size="small"
               sx={{

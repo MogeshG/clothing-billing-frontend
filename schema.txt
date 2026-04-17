@@ -138,7 +138,7 @@ model batches {
   hsn_code String?
 
   batch_no String @unique
-  status String @default("ACTIVE")
+  status String @default("ACTIVE") // "PENDING" | "ACTIVE" | "BLOCKED" | "EXPIRED"
 
   purchase_item_id String?
   purchase_item purchase_item? @relation(fields: [purchase_item_id], references: [id])

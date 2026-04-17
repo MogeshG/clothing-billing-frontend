@@ -100,9 +100,10 @@ export default function CustomSearch<T>({
         <TextField
           {...params}
           placeholder={placeholder}
-          size="small"
+          size="medium"
           InputProps={{
             ...params.InputProps,
+            className: "h-12",
           }}
         />
       )}

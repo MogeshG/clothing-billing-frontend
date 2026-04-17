@@ -27,7 +27,11 @@ const MenuItem = ({
 
   const isActive =
     location.pathname === item.href ||
-    item.children?.some((child: any) => location.pathname === child.href);
+    item.children?.some(
+      (child: any) =>
+        location.pathname === child.href ||
+        location.pathname.startsWith(item.href + "/"),
+    );
 
   return (
     <div>

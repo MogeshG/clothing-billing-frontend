@@ -4,6 +4,9 @@ import Layout from "../Layouts/Layout";
 import {
   AddProductPage,
   AddVendorPage,
+  BatchesPage,
+  CreatePurchasePage,
+  NewStockAdjustmentPage,
   CustomerPage,
   DashboardPage,
   EditVendorPage,
@@ -11,14 +14,15 @@ import {
   LoginPage,
   ProductCategoriesPage,
   ProductPage,
-  VendorsPage,
   PurchasesPage,
-  CreatePurchasePage,
+  StockAdjustmentsPage,
+  StockMovementsPage,
+  UpdateBatchPage,
   UpdatePurchasePage,
+  VendorsPage,
   ViewPurchasePage,
 } from "./pages";
 import EditProductPage from "../pages/private/products/edit-product";
-
 import Loader from "../components/CustomLoader";
 
 export const publicRoutes = [
@@ -82,7 +86,26 @@ export const privateRoutes = [
         path: "purchases/view-purchase/:id",
         element: <ViewPurchasePage />,
       },
-
+      {
+        path: "batches",
+        element: <BatchesPage />,
+      },
+      {
+        path: "batches/update-batch/:id",
+        element: <UpdateBatchPage />,
+      },
+      {
+        path: "stock-movements",
+        element: <StockMovementsPage />,
+      },
+      {
+        path: "stock-adjustments",
+        element: <StockAdjustmentsPage />,
+      },
+      {
+        path: "stock-adjustments/new-adjustment",
+        element: <NewStockAdjustmentPage />,
+      },
       {
         path: "inventory",
         element: <InventoryPage />,

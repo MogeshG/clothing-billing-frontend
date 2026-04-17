@@ -7,10 +7,6 @@ export const isValidEmail = (email: string): boolean => {
 export const isValidPhone = (phone: string): boolean => {
   const value = phone.trim();
 
-  // Supports:
-  // 9876543210
-  // +919876543210
-  // +91 9876543210
   const phoneRegex = /^(\+?\d{1,3}[- ]?)?\d{10}$/;
 
   return phoneRegex.test(value);
