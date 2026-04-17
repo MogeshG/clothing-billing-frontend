@@ -9,6 +9,7 @@ import vendorsReducer from "./slices/vendorsSlice";
 import batchesReducer from "./slices/batchesSlice";
 import stockMovementsReducer from "./slices/stockMovementsSlice";
 import stockAdjustmentsReducer from "./slices/stockAdjustmentsSlice";
+import invoicesReducer from "./slices/invoicesSlice";
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     batches: batchesReducer,
     stockMovements: stockMovementsReducer,
     stockAdjustments: stockAdjustmentsReducer,
+    invoices: invoicesReducer,
   },
 });
 

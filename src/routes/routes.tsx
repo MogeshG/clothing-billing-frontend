@@ -23,6 +23,7 @@ import {
   ViewPurchasePage,
 } from "./pages";
 import EditProductPage from "../pages/private/products/edit-product";
+import POSPage from "../pages/private/sales/pos";
 import Loader from "../components/CustomLoader";
 
 export const publicRoutes = [
@@ -125,6 +126,10 @@ export const privateRoutes = [
       {
         path: "product-categories",
         element: <ProductCategoriesPage />,
+      },
+      {
+        path: "sales/pos",
+        element: <POSPage />,
       },
     ],
   },
