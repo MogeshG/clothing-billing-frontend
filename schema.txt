@@ -7,7 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ================= USERS =================
+/////////// USERS ////////////////////
+
 model users {
   id String @id @default(uuid())
 
@@ -22,22 +23,22 @@ model users {
   updated_at DateTime @updatedAt
 }
 
-// ================= CUSTOMERS =================
-model users {
+/////////// CUSTOMERS ////////////////////
+
+model customers {
   id String @id @default(uuid())
 
   name String
   phone String @unique
-  email String? @unique
-
-  permissions String?
-  hashed_password String
+  email String?
+  address String?
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 }
 
-// ================= VENDORS =================
+/////////// VENDORS ////////////////////
+
 model vendors {
   id String @id @default(uuid())
 
@@ -48,29 +49,18 @@ model vendors {
 
   gstin String? @unique
 
-  company_name String?
+  company_name String
   city String?
   state String?
   country String @default("India")
 
-  is_active Boolean @default(true)
-
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+  is_deleted Boolean @default(false)
 }
 
-// ================= UNITS =================
-model units {
-  id String @id @default(uuid())
+/////////// PRODUCT STRUCTURE ////////////////////
 
-  name String
-  key String @unique
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-}
-
-// ================= CATEGORY =================
 model product_categories {
   id String @id @default(uuid())
 
@@ -83,13 +73,11 @@ model product_categories {
   updated_at DateTime @updatedAt
 }
 
-// ================= PRODUCTS =================
 model products {
   id String @id @default(uuid())
 
   name String
   sku String? @unique
-
   hsn_code String
 
   description String?
@@ -97,11 +85,12 @@ model products {
   category_id String
   category product_categories @relation(fields: [category_id], references: [id])
 
-  category_name String
-
   brand String?
 
-  gst_percent Float @default(0)
+  cgst_percent Decimal @default(0)
+  sgst_percent Decimal @default(0)
+  igst_percent Decimal @default(0)
+
   tax_inclusive Boolean @default(false)
 
   is_active Boolean @default(true)
@@ -113,23 +102,21 @@ model products {
   updated_at DateTime @updatedAt
 }
 
-// ================= PRODUCT VARIANT =================
 model product_variant {
   id String @id @default(uuid())
 
   product_id String
   product products @relation(fields: [product_id], references: [id])
 
-  size String
-  color String
+  size String?
+  color String?
 
   barcode String @unique
-
   sku String?
 
-  cost_price Float
-  selling_price Float
-  mrp Float
+  cost_price Decimal
+  selling_price Decimal
+  mrp Decimal
 
   batches batches[]
 
@@ -137,25 +124,35 @@ model product_variant {
   updated_at DateTime @updatedAt
 }
 
-// ================= BATCHES =================
+/////////// BATCHES (Inventory Core) ////////////////////
+
 model batches {
   id String @id @default(uuid())
 
   product_variant_id String
   product_variant product_variant @relation(fields: [product_variant_id], references: [id])
 
+  /////////// Snapshot (VERY IMPORTANT) ////////////////////
+  product_name String
+  variant_sku String?
+  hsn_code String?
+
   batch_no String @unique
   status String @default("ACTIVE")
 
-  purchase_id String?
-  purchase purchases? @relation(fields: [purchase_id], references: [id])
+  purchase_item_id String?
+  purchase_item purchase_item? @relation(fields: [purchase_item_id], references: [id])
 
   purchase_no String?
-  supplier_name String?
+  vendor_name String?
   purchase_date DateTime?
 
-  purchase_price Float
-  selling_price Float?
+  purchase_price Decimal
+  selling_price Decimal?
+
+  cgst_percent Decimal
+  sgst_percent Decimal
+  igst_percent Decimal
 
   quantity Int
   remaining_quantity Int
@@ -167,43 +164,22 @@ model batches {
   updated_at DateTime @updatedAt
 }
 
-// =============== STOCK ADJUSTMENTS ==========
-model stock_adjustments {
-  id String @id @default(uuid())
+/////////// PURCHASES ////////////////////
 
-  product_variant_id String
-  product_variant product_variant @relation(fields: [product_variant_id], references: [id])
-
-  batch_id String?
-
-  type String
-  // DAMAGE | LOSS | CORRECTION | EXPIRY | MANUAL_IN | MANUAL_OUT
-
-  quantity Int
-
-  reason String?
-
-  created_by String?
-
-  created_at DateTime @default(now())
-}
-
-// =============== PURCHASES =================
 model purchases {
   id String @id @default(uuid())
 
   purchase_no String @unique
+  status String @default(DRAFT) // DRAFT | COMPLETED | CANCELLED
 
-  status String @default("DRAFT")
+  vendor_name String?
+  vendor_phone String?
+  vendor_gstin String?
 
-  supplier_name String?
-  supplier_phone String?
-  supplier_gstin String?
-
-  sub_total Float @default(0)
-  discount Float @default(0)
-  tax_amount Float @default(0)
-  total_amount Float @default(0)
+  sub_total Decimal @default(0)
+  discount Decimal @default(0)
+  tax_amount Decimal @default(0)
+  total_amount Decimal @default(0)
 
   purchase_date DateTime @default(now())
 
@@ -213,7 +189,6 @@ model purchases {
   updated_at DateTime @updatedAt
 }
 
-// ==========PURCHASE ITEM===========
 model purchase_item {
   id String @id @default(uuid())
 
@@ -222,45 +197,48 @@ model purchase_item {
 
   product_variant_id String?
 
+  /////////// Snapshot ////////////////////
   item_name String
-
+  item_type String @default("FINISHED")
   sku String?
-
   size String?
   color String?
+  hsn_code String?
 
-  quantity Float
-  price Float
+  quantity Decimal
+  price Decimal
 
-  gst_percent Float @default(0)
+  cgst_percent Decimal
+  sgst_percent Decimal
+  igst_percent Decimal
 
-  total Float
+  total Decimal
 
   created_at DateTime @default(now())
 
   @@index([purchase_id])
 }
 
-// ================= INVOICES =================
+/////////// SALES (INVOICES) ////////////////////
+
 model invoices {
   id String @id @default(uuid())
 
   invoice_no String @unique
+  status DocumentStatus @default(DRAFT)
 
   customer_name String?
   customer_phone String?
   customer_email String?
   customer_address String?
 
-  sub_total Float @default(0)
-  discount Float @default(0)
-  tax_amount Float @default(0)
-  total_amount Float @default(0)
+  sub_total Decimal @default(0)
+  discount Decimal @default(0)
+  tax_amount Decimal @default(0)
+  total_amount Decimal @default(0)
 
-  paid_amount Float @default(0)
-  balance_due Float @default(0)
-
-  status String @default("DRAFT")
+  paid_amount Decimal @default(0)
+  balance_due Decimal @default(0)
 
   payment_method String?
 
@@ -273,63 +251,98 @@ model invoices {
   updated_at DateTime @updatedAt
 }
 
-// ================= INVOICE ITEMS =================
 model invoice_item {
   id String @id @default(uuid())
 
   invoice_id String
   invoice invoices @relation(fields: [invoice_id], references: [id])
 
+  product_variant_id String?
+
+  /////////// Snapshot ////////////////////
   product_name String
   product_sku String?
   variant_sku String?
+  hsn_code String
 
   size String?
   color String?
 
   quantity Int
 
-  price Float
-  discount Float @default(0)
+  price Decimal
+  discount Decimal @default(0)
 
-  cgst_amount Float @default(0)
-  sgst_amount Float @default(0)
-  igst_amount Float @default(0)
+  cgst_percent Decimal
+  sgst_percent Decimal
+  igst_percent Decimal
 
-  total Float
+  cgst_amount Decimal @default(0)
+  sgst_amount Decimal @default(0)
+  igst_amount Decimal @default(0)
+
+  total Decimal
 
   created_at DateTime @default(now())
 }
 
-// ================ STOCK MOVEMENT =================
+/////////// STOCK MOVEMENT (HEADER) ////////////////////
+
 model stock_movement {
   id String @id @default(uuid())
 
   product_variant_id String
-  batch_id String?
+  product_variant product_variant @relation(fields: [product_variant_id], references: [id])
 
-  type String // IN | OUT | ADJUSTMENT
+  product_name String
+  variant_sku String?
 
+  invoice_item_id String?
+  purchase_item_id String?
+
+  type String  // IN | OUT | ADJUSTMENT
   quantity Int
 
-  reference_type String
-  reference_id String
+  items stock_movement_item[]
 
   created_at DateTime @default(now())
 }
 
-// ================= INVOICE AUDIT  ================
-model invoice_audit {
+/////////// STOCK MOVEMENT (FIFO SPLIT) ////////////////////
+
+model stock_movement_item {
   id String @id @default(uuid())
 
-  invoice_id String
-  action String
-  data String?
+  stock_movement_id String
+  stock_movement stock_movement @relation(fields: [stock_movement_id], references: [id])
+
+  batch_id String
+  batch batches @relation(fields: [batch_id], references: [id])
+
+  quantity Int
+}
+
+/////////// STOCK ADJUSTMENTS ////////////////////
+
+model stock_adjustments {
+  id String @id @default(uuid())
+
+  product_variant_id String
+
+  product_name String
+  batch_no String?
+
+  type String
+  quantity Int
+
+  reason String?
+  created_by String?
 
   created_at DateTime @default(now())
 }
 
-// ================ CREDIT NOTES ===================
+/////////// CREDIT NOTES ////////////////////
+
 model credit_notes {
   id String @id @default(uuid())
 
@@ -341,29 +354,39 @@ model credit_notes {
   customer_name String
   customer_phone String?
 
-  total_refund Float
+  total_refund Decimal
 
   reason String?
-
-  status String @default("DRAFT")
+  status DocumentStatus @default(DRAFT)
 
   items credit_note_item[]
 
   created_at DateTime @default(now())
 }
 
-// ============== CREDIT NOTES ITEM ==============
 model credit_note_item {
   id String @id @default(uuid())
 
   credit_note_id String
-  credit_notes credit_notes @relation(fields: [credit_note_id], references: [id])
+  credit_note credit_notes @relation(fields: [credit_note_id], references: [id])
 
   product_name String
   product_sku String?
-  quantity Int
 
-  refund_amount Float
+  quantity Int
+  refund_amount Decimal
+
+  created_at DateTime @default(now())
+}
+
+/////////// AUDIT ////////////////////
+
+model invoice_audit {
+  id String @id @default(uuid())
+
+  invoice_id String
+  action String
+  data Json?
 
   created_at DateTime @default(now())
 }

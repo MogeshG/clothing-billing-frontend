@@ -3,6 +3,7 @@ import React, { type Dispatch, type SetStateAction } from "react";
 import {
   MaterialReactTable,
   type MRT_ColumnDef,
+  type MRT_ColumnFiltersState,
   type MRT_RowData,
 } from "material-react-table";
 
@@ -28,6 +29,10 @@ interface CustomTableProps<T extends MRT_RowData> {
   };
   onColumnPinningChange?: Dispatch<
     SetStateAction<{ left: string[]; right: any[] }>
+  >;
+  columnFilters?: MRT_ColumnFiltersState;
+  onColumnFiltersChange?: React.Dispatch<
+    React.SetStateAction<MRT_ColumnFiltersState>
   >;
   renderRowActions?: (props: any) => React.ReactNode;
   renderDetailPanel?: (props: any) => React.ReactNode;
@@ -55,6 +60,8 @@ export function CustomTable<T extends MRT_RowData>({
   bordered = false,
   enableFullScreenToggle = false,
   enableDensityToggle = false,
+  columnFilters = [],
+  onColumnFiltersChange = () => {},
   onColumnPinningChange = () => {},
   renderRowActions,
   renderDetailPanel,
@@ -63,14 +70,20 @@ export function CustomTable<T extends MRT_RowData>({
   ...tableProps
 }: CustomTableProps<T>) {
   const borderColor = "#a6a6a6";
+  const tableState = {
+    isLoading,
+    columnPinning,
+    ...(manualFiltering ? { columnFilters } : {}),
+  };
 
   return (
     <div className="min-h-fit">
       <MaterialReactTable
         columns={columns}
         data={data}
-        state={{ isLoading, columnPinning }}
         {...tableProps}
+        state={tableState}
+        {...(manualFiltering ? { onColumnFiltersChange } : {})}
         enableColumnFilters={enableColumnFilters}
         enableSorting={enableSorting}
         enableColumnPinning={enableColumnPinning}

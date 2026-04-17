@@ -22,3 +22,26 @@ export const EditProductPage = lazy(
 export const ProductCategoriesPage = lazy(
   () => import("../pages/private/product-categories/product-categories"),
 );
+
+export const VendorsPage = lazy(
+  () => import("../pages/private/vendors/vendors"),
+);
+export const AddVendorPage = lazy(
+  () => import("../pages/private/vendors/add-vendor"),
+);
+export const EditVendorPage = lazy(
+  () => import("../pages/private/vendors/edit-vendor"),
+);
+export const PurchasesPage = lazy(
+  () => import("../pages/private/purchases/purchases"),
+);
+export const CreatePurchasePage = lazy(
+  () => import("../pages/private/purchases/create-purchase"),
+);
+export const UpdatePurchasePage = lazy(
+  () => import("../pages/private/purchases/update-purchase"),
+);
+
+export const ViewPurchasePage = lazy(
+  () => import("../pages/private/purchases/view-purchase"),
+);

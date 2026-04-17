@@ -1,0 +1,273 @@
+import { useEffect, useState, useMemo } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { Grid, Chip, Card, CardContent } from "@mui/material";
+import type { RootState } from "../../../store";
+import type { Purchase, PurchaseItem } from "../../../types/purchase";
+import CustomButton from "../../../components/CustomButton";
+import { CustomTable } from "../../../components/CustomTable";
+import type { MRT_ColumnDef } from "material-react-table";
+import { RemoveRedEye } from "@mui/icons-material";
+
+const ViewPurchasePage = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const purchase = useSelector((state: RootState) =>
+    state.purchases.purchases.find((p: Purchase) => p.id === id),
+  ) as Purchase | undefined;
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading since purchases are pre-fetched
+    const timer = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const itemsColumns = useMemo<MRT_ColumnDef<PurchaseItem>[]>(
+    () => [
+      {
+        accessorKey: "item_name",
+        header: "Item Name",
+        size: 200,
+      },
+      {
+        accessorKey: "item_type",
+        header: "Type",
+        Cell: ({ row }) => (
+          <Chip
+            label={row.original.item_type}
+            size="small"
+            color={
+              row.original.item_type === "finished" ? "primary" : "secondary"
+            }
+          />
+        ),
+      },
+      {
+        accessorKey: "sku",
+        header: "SKU",
+      },
+      {
+        accessorKey: "size",
+        header: "Size",
+      },
+      {
+        accessorKey: "color",
+        header: "Color",
+      },
+      {
+        accessorKey: "hsn_code",
+        header: "HSN Code",
+      },
+      {
+        accessorKey: "quantity",
+        header: "Qty",
+        size: 80,
+      },
+      {
+        accessorKey: "price",
+        header: "Price",
+        Cell: ({ renderedCellValue }) =>
+          `₹${Number(renderedCellValue).toLocaleString()}`,
+        size: 100,
+      },
+      {
+        accessorKey: "cgst_percent",
+        header: "CGST%",
+        size: 120,
+      },
+      {
+        accessorKey: "sgst_percent",
+        header: "SGST%",
+        size: 120,
+      },
+      {
+        accessorKey: "igst_percent",
+        header: "IGST%",
+        size: 120,
+      },
+      {
+        accessorKey: "total",
+        header: "Total",
+        Cell: ({ renderedCellValue }) =>
+          `₹${Number(renderedCellValue).toLocaleString()}`,
+        size: 120,
+      },
+    ],
+    [],
+  );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-100">
+        <div className="text-lg">Loading purchase details...</div>
+      </div>
+    );
+  }
+
+  if (!purchase) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-100 space-y-4">
+        <RemoveRedEye className="text-6xl text-gray-400" />
+        <div className="text-xl text-gray-600">Purchase not found</div>
+        <CustomButton variant="outlined" onClick={() => navigate("/purchases")}>
+          Back to Purchases
+        </CustomButton>
+      </div>
+    );
+  }
+
+  const getStatusColor = (status: Purchase["status"]) => {
+    switch (status) {
+      case "COMPLETED":
+        return "success";
+      case "DRAFT":
+        return "info";
+      case "CANCELLED":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
+  const formatCurrency = (amount: number) =>
+    `₹${Number(amount).toLocaleString()}`;
+
+  return (
+    <div className="flex flex-col m-2 w-full space-y-4 p-3 overflow-y-auto">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-gray-800">Purchase Details</h1>
+        <CustomButton
+          variant="outlined"
+          onClick={() => navigate("/purchases")}
+          startIcon={<RemoveRedEye />}
+        >
+          Back to List
+        </CustomButton>
+      </div>
+
+      <div className="flex flex-col w-full bg-white space-y-6 p-6 rounded-md mx-auto max-w-7xl shadow-sm">
+        <div className="grid grid-cols-3 gap-4">
+          {/* Field 1 */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <div className="flex items-center">
+              <p className=" text-gray-500 w-40">Purchase No</p>
+              <span className="text-gray-500 mr-2">:</span>
+              <p className="text-base font-medium">{purchase.purchase_no}</p>
+            </div>
+          </Grid>
+
+          {/* Field 2 */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <div className="flex items-center">
+              <p className=" text-gray-500 w-40">Purchase Date</p>
+              <span className="text-gray-500 mr-2">:</span>
+              <p className="text-base font-medium">
+                {new Date(purchase.purchase_date).toLocaleDateString()}
+              </p>
+            </div>
+          </Grid>
+
+          {/* Field 3 */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <div className="flex items-center">
+              <p className=" text-gray-500 w-40">Status</p>
+              <span className="text-gray-500 mr-2">:</span>
+              <Chip
+                label={purchase.status}
+                color={getStatusColor(purchase.status)}
+                size="small"
+                variant="filled"
+              />
+            </div>
+          </Grid>
+
+          {/* Field 4 */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <div className="flex items-center">
+              <p className=" text-gray-500 w-40">Vendor Name</p>
+              <span className="text-gray-500 mr-2">:</span>
+              <p className="text-base font-medium">
+                {purchase.vendor_name || "N/A"}
+              </p>
+            </div>
+          </Grid>
+
+          {/* Field 5 */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <div className="flex items-center">
+              <p className=" text-gray-500 w-40">Vendor Phone</p>
+              <span className="text-gray-500 mr-2">:</span>
+              <p className="text-base font-medium">
+                {purchase.vendor_phone || "N/A"}
+              </p>
+            </div>
+          </Grid>
+
+          {/* Field 6 */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <div className="flex items-center">
+              <p className=" text-gray-500 w-40">Vendor GSTIN</p>
+              <span className="text-gray-500 mr-2">:</span>
+              <p className="text-base font-medium">
+                {purchase.vendor_gstin || "N/A"}
+              </p>
+            </div>
+          </Grid>
+        </div>
+
+        {/* Items Table */}
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl font-semibold text-gray-700 pb-2">
+            Purchase Items ({purchase.items.length} items)
+          </h2>
+          <CustomTable
+            columns={itemsColumns}
+            data={purchase.items}
+            enableRowActions={false}
+            enableRowSelection={false}
+            enableColumnFilters={false}
+            enableSorting={false}
+            enablePagination={false}
+            enableGlobalFilter={false}
+          />
+        </div>
+
+        {/* Totals Summary */}
+        <Card className="bg-linear-to-r from-blue-50 to-indigo-50">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-sm">
+              <div className="flex flex-col">
+                <span className="text-gray-600">Sub Total</span>
+                <span className="text-xl font-bold text-gray-900">
+                  {formatCurrency(purchase.sub_total)}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-gray-600">Discount</span>
+                <span className="text-xl font-semibold text-green-600">
+                  -{formatCurrency(purchase.discount)}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-gray-600">Tax Amount</span>
+                <span className="text-xl font-semibold">
+                  {formatCurrency(purchase.tax_amount)}
+                </span>
+              </div>
+              <div className="flex flex-col border-l border-gray-200 pl-6">
+                <span className="text-gray-600">Grand Total</span>
+                <span className="text-3xl font-bold text-gray-900">
+                  {formatCurrency(purchase.total_amount)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default ViewPurchasePage;

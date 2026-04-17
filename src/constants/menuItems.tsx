@@ -12,6 +12,8 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import CategoryIcon from "@mui/icons-material/CategoryOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import StoreIcon from "@mui/icons-material/Store";
+import { PersonOutlined, ShoppingCartOutlined } from "@mui/icons-material";
 
 export interface MenuItem {
   title: string;
@@ -30,6 +32,23 @@ export const MENU_ITEMS: MenuItem[] = [
     title: "Customers",
     href: "/customers",
     icon: <GroupIcon />,
+  },
+  {
+    title: "Suppliers",
+    href: "/vendors",
+    icon: <StoreIcon />,
+    children: [
+      {
+        title: "Vendors",
+        href: "/vendors",
+        icon: <PersonOutlined />,
+      },
+      {
+        title: "Purchases",
+        href: "/purchases",
+        icon: <ShoppingCartOutlined />,
+      },
+    ],
   },
   {
     title: "Inventory",

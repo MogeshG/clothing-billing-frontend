@@ -90,6 +90,9 @@ export default function CustomInput({
         fullWidth={fullWidth}
         size={size}
         variant="outlined"
+        InputLabelProps={{
+          className: clsx("text-sm font-medium", labelClassName),
+        }}
         InputProps={{
           className: clsx("transition-all rounded-lg", inputClassName),
           startAdornment: startIcon ? (
@@ -106,9 +109,6 @@ export default function CustomInput({
               </span>
             </InputAdornment>
           ) : undefined,
-        }}
-        InputLabelProps={{
-          className: clsx("text-sm font-medium", labelClassName),
         }}
         inputProps={{
           className: clsx("bg-transparent", fieldClassName),

@@ -3,14 +3,22 @@ import { Navigate } from "react-router-dom";
 import Layout from "../Layouts/Layout";
 import {
   AddProductPage,
+  AddVendorPage,
   CustomerPage,
   DashboardPage,
+  EditVendorPage,
   InventoryPage,
   LoginPage,
   ProductCategoriesPage,
   ProductPage,
+  VendorsPage,
+  PurchasesPage,
+  CreatePurchasePage,
+  UpdatePurchasePage,
+  ViewPurchasePage,
 } from "./pages";
 import EditProductPage from "../pages/private/products/edit-product";
+
 import Loader from "../components/CustomLoader";
 
 export const publicRoutes = [
@@ -46,6 +54,35 @@ export const privateRoutes = [
         path: "customers",
         element: <CustomerPage />,
       },
+      {
+        path: "vendors",
+        element: <VendorsPage />,
+      },
+      {
+        path: "vendors/add-vendor",
+        element: <AddVendorPage />,
+      },
+      {
+        path: "vendors/edit-vendor/:id",
+        element: <EditVendorPage />,
+      },
+      {
+        path: "purchases",
+        element: <PurchasesPage />,
+      },
+      {
+        path: "purchases/create-purchase",
+        element: <CreatePurchasePage />,
+      },
+      {
+        path: "purchases/update-purchase/:id",
+        element: <UpdatePurchasePage />,
+      },
+      {
+        path: "purchases/view-purchase/:id",
+        element: <ViewPurchasePage />,
+      },
+
       {
         path: "inventory",
         element: <InventoryPage />,
