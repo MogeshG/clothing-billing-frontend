@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useRef, useEffect } from "react";
 import Stepper from "./CustomStepper";
 import { type Batch } from "../types/batch";
 import type { ItemForm } from "../pages/private/pos/ItemForm";
@@ -13,55 +13,112 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ batch, items, onAdd }) => {
   const existingItem = items.find((item) => item.batchNo === batch.batchNo);
+
   const syncedQuantity = existingItem ? existingItem.quantity : 0;
   const [quantity, setQuantity] = React.useState(syncedQuantity);
 
-  React.useEffect(() => {
-    if (existingItem) {
-      setQuantity(existingItem.quantity);
-    } else {
-      setQuantity(0);
-    }
-  }, [existingItem]);
+  const timeoutRef = useRef<number>(null);
+  const existingQuantityRef = useRef(syncedQuantity);
+
+  useEffect(() => {
+    existingQuantityRef.current = syncedQuantity;
+  }, [syncedQuantity]);
+
+  const debouncedOnAdd = useCallback(
+    (newQty: number) => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+      timeoutRef.current = window.setTimeout(() => {
+        if (existingQuantityRef.current !== newQty) {
+          onAdd(batch, newQty);
+        }
+      }, 120);
+    },
+    [batch, onAdd],
+  );
+
+  useEffect(() => {
+    setQuantity(syncedQuantity);
+  }, [syncedQuantity]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const isExpiringSoon =
+    batch.expiryDate && dayjs(batch.expiryDate).diff(dayjs(), "day") <= 7;
 
   return (
-    <div className="p-3 bg-white rounded-lg border shadow-sm hover:shadow-md transition-all cursor-pointer group">
-      <div className="flex justify-between items-start mb-2">
-        <div className="flex flex-col">
-          <h3 className="font-semibold text-sm line-clamp-1">{batch.productName}</h3>
-          <span className="text-xs text-gray-500">Batch: {batch.batchNo}</span>
-          {batch.expiryDate && (
-            <span className="text-xs text-orange-600">
-              Exp: {dayjs(batch.expiryDate).format("MMM DD, YYYY")}
+    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-200 group">
+      {/* Header */}
+      <div className="flex justify-between gap-3">
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">
+            {batch.productName}
+          </h3>
+
+          <div className="flex flex-wrap gap-2 mt-1">
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+              Batch: {batch.batchNo}
             </span>
-          )}
+
+            {batch.expiryDate && (
+              <span
+                className={`text-[11px] px-2 py-0.5 rounded-full ${
+                  isExpiringSoon
+                    ? "bg-red-100 text-red-600"
+                    : "bg-orange-100 text-orange-600"
+                }`}
+              >
+                Exp: {dayjs(batch.expiryDate).format("DD MMM")}
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* Price */}
         <div className="text-right">
-          <span className="font-bold text-lg block">{formatRupee(batch.sellingPrice)}</span>
-          <span className="text-xs text-gray-500">Stock: {batch.remainingQuantity}</span>
+          <p className="text-lg font-bold text-gray-900">
+            {formatRupee(batch.sellingPrice)}
+          </p>
+          <p className="text-[11px] text-gray-500">
+            Stock: {batch.remainingQuantity}
+          </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 pt-2 justify-center">
-        <Stepper
-          value={quantity}
-          min={0}
-          max={batch.remainingQuantity}
-          onChange={(val) => {
-            setQuantity(val);
-            onAdd(batch, val);
-          }}
-          onIncrease={() => {
-            const newQty = Math.min(quantity + 1, batch.remainingQuantity);
-            setQuantity(newQty);
-            onAdd(batch, newQty);
-          }}
-          onDecrease={() => {
-            const newQty = Math.max(quantity - 1, 0);
-            setQuantity(newQty);
-            onAdd(batch, newQty);
-          }}
-        />
+      {/* Divider */}
+      <div className="my-3 border-t border-gray-100" />
+
+      {/* Stepper Section */}
+      <div className="flex items-center justify-center">
+        <div className="bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+          <Stepper
+            value={quantity}
+            min={0}
+            max={batch.remainingQuantity}
+            onChange={(val) => {
+              setQuantity(val);
+              debouncedOnAdd(val);
+            }}
+            onIncrease={() => {
+              const newQty = Math.min(quantity + 1, batch.remainingQuantity);
+              if (newQty > quantity) {
+                setQuantity(newQty);
+                debouncedOnAdd(newQty);
+              }
+            }}
+            onDecrease={() => {
+              const newQty = Math.max(quantity - 1, 0);
+              if (newQty < quantity) {
+                setQuantity(newQty);
+                debouncedOnAdd(newQty);
+              }
+            }}
+          />
+        </div>
       </div>
     </div>
   );

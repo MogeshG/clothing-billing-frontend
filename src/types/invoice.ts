@@ -43,7 +43,8 @@ export interface InvoiceItem {
 }
 
 export interface AddInvoiceForm {
-  invoiceNo: string;
+  invoiceNo?: string;
+  status?: "DRAFT" | "COMPLETED";
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;

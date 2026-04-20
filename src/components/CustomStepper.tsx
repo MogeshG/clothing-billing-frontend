@@ -44,9 +44,18 @@ const Stepper: React.FC<StepperProps> = ({
       </IconButton>
 
       <input
+        type="number"
+        min={min}
+        max={max}
         className={`w-12 text-center font-medium outline-none focus:border border-primary-300 text-sm rounded-sm ${inputClass}`}
-        onChange={(e) => onChange(parseInt(e.target.value))}
+        onChange={(e) => {
+          const numVal = parseInt(e.target.value);
+          if (!isNaN(numVal)) {
+            onChange(Math.max(min || 0, Math.min(max || 1000, numVal)));
+          }
+        }}
         value={value}
+        inputMode="numeric"
       />
 
       <IconButton

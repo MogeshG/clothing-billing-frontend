@@ -24,6 +24,7 @@ import {
 } from "./pages";
 import EditProductPage from "../pages/private/products/edit-product";
 import POSPage from "../pages/private/pos/pos";
+import InvoicesPage from "../pages/private/sales/invoices";
 import Loader from "../components/CustomLoader";
 
 export const publicRoutes = [
@@ -130,6 +131,10 @@ export const privateRoutes = [
       {
         path: "sales/pos",
         element: <POSPage />,
+      },
+      {
+        path: "sales/invoices",
+        element: <InvoicesPage />,
       },
     ],
   },

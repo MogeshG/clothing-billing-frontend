@@ -8,14 +8,17 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import ReceiptIcon from "@mui/icons-material/ReceiptOutlined";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import CurrencyBitcoinOutlinedIcon from "@mui/icons-material/CurrencyBitcoinOutlined";
 import AllInboxOutlinedIcon from "@mui/icons-material/AllInboxOutlined";
 import CategoryIcon from "@mui/icons-material/CategoryOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import StoreIcon from "@mui/icons-material/Store";
-import { EditOutlined, PersonOutlined, ShoppingCartOutlined } from "@mui/icons-material";
+import {
+  EditOutlined,
+  PersonOutlined,
+  ShoppingCartOutlined,
+} from "@mui/icons-material";
 
 export interface MenuItem {
   title: string;
@@ -31,6 +34,14 @@ export const MENU_ITEMS: MenuItem[] = [
     icon: <HomeIcon />,
   },
   { title: "POS", href: "/sales/pos", icon: <PointOfSaleIcon /> },
+  {
+    title: "Sales",
+    href: "/sales",
+    icon: <AttachMoneyIcon />,
+    children: [
+      { title: "Invoices", href: "/sales/invoices", icon: <ReceiptIcon /> },
+    ],
+  },
   {
     title: "Customers",
     href: "/customers",
@@ -89,19 +100,6 @@ export const MENU_ITEMS: MenuItem[] = [
         title: "Product Categories",
         href: "/product-categories",
         icon: <ArticleOutlinedIcon />,
-      },
-    ],
-  },
-  {
-    title: "Sales",
-    href: "/sales",
-    icon: <AttachMoneyIcon />,
-    children: [
-      { title: "Invoices", href: "/sales/invoices", icon: <ReceiptIcon /> },
-      {
-        title: "Payments",
-        href: "/sales/payments",
-        icon: <ShoppingCartIcon />,
       },
     ],
   },
