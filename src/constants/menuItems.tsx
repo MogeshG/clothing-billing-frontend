@@ -15,11 +15,7 @@ import AllInboxOutlinedIcon from "@mui/icons-material/AllInboxOutlined";
 import CategoryIcon from "@mui/icons-material/CategoryOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import StoreIcon from "@mui/icons-material/Store";
-import {
-  EditOutlined,
-  PersonOutlined,
-  ShoppingCartOutlined,
-} from "@mui/icons-material";
+import { EditOutlined, PersonOutlined, ShoppingCartOutlined } from "@mui/icons-material";
 
 export interface MenuItem {
   title: string;
@@ -34,6 +30,7 @@ export const MENU_ITEMS: MenuItem[] = [
     href: "/dashboard",
     icon: <HomeIcon />,
   },
+  { title: "POS", href: "/sales/pos", icon: <PointOfSaleIcon /> },
   {
     title: "Customers",
     href: "/customers",
@@ -101,7 +98,6 @@ export const MENU_ITEMS: MenuItem[] = [
     icon: <AttachMoneyIcon />,
     children: [
       { title: "Invoices", href: "/sales/invoices", icon: <ReceiptIcon /> },
-      { title: "POS", href: "/sales/pos", icon: <PointOfSaleIcon /> },
       {
         title: "Payments",
         href: "/sales/payments",

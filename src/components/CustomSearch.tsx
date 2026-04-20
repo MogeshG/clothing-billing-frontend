@@ -11,6 +11,7 @@ export interface ActionOption {
 
 export interface CustomSearchProps<T> {
   data: T[];
+  label: string;
   value?: T | null;
   inputValue?: string;
 
@@ -29,6 +30,7 @@ export interface CustomSearchProps<T> {
 export default function CustomSearch<T>({
   data = [],
   value = null,
+  label = "",
   inputValue: controlledInput,
   placeholder = "Search...",
   getLabel,
@@ -39,8 +41,7 @@ export default function CustomSearch<T>({
 }: CustomSearchProps<T>) {
   const [internalInput, setInternalInput] = useState("");
 
-  const inputValue =
-    controlledInput !== undefined ? controlledInput : internalInput;
+  const inputValue = controlledInput !== undefined ? controlledInput : internalInput;
 
   const action = actionOption?.(inputValue);
 
@@ -63,14 +64,10 @@ export default function CustomSearch<T>({
 
         onSelect?.(val || null);
       }}
-      getOptionLabel={(option: any) =>
-        typeof option === "string" ? option : getLabel(option)
-      }
+      getOptionLabel={(option: any) => (typeof option === "string" ? option : getLabel(option))}
       filterOptions={(options, params) => {
         const filtered = options.filter((item) =>
-          getLabel(item)
-            .toLowerCase()
-            .includes(params.inputValue.toLowerCase()),
+          getLabel(item).toLowerCase().includes(params.inputValue.toLowerCase()),
         );
 
         if (action && params.inputValue !== "") {
@@ -86,9 +83,7 @@ export default function CustomSearch<T>({
         if (option.__action) {
           return (
             <li {...props} className="text-blue-600">
-              {option.__action.icon && (
-                <option.__action.icon fontSize="small" />
-              )}
+              {option.__action.icon && <option.__action.icon fontSize="small" />}
               <span className="ml-2">{option.__action.label}</span>
             </li>
           );
@@ -100,6 +95,7 @@ export default function CustomSearch<T>({
         <TextField
           {...params}
           placeholder={placeholder}
+          label={label}
           size="medium"
           InputProps={{
             ...params.InputProps,
@@ -107,9 +103,7 @@ export default function CustomSearch<T>({
           }}
         />
       )}
-      PaperComponent={(props) => (
-        <Paper {...props} className="shadow-md rounded-md" />
-      )}
+      PaperComponent={(props) => <Paper {...props} className="shadow-md rounded-md" />}
     />
   );
 }

@@ -23,7 +23,7 @@ import {
   ViewPurchasePage,
 } from "./pages";
 import EditProductPage from "../pages/private/products/edit-product";
-import POSPage from "../pages/private/sales/pos";
+import POSPage from "../pages/private/pos/pos";
 import Loader from "../components/CustomLoader";
 
 export const publicRoutes = [

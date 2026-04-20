@@ -138,6 +138,7 @@ model batches {
   hsn_code String?
 
   batch_no String @unique
+  barcode String
   status String @default("ACTIVE") // "PENDING" | "ACTIVE" | "BLOCKED" | "EXPIRED"
 
   purchase_item_id String?

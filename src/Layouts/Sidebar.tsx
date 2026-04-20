@@ -5,9 +5,7 @@ import { useState } from "react";
 import MenuItem from "../components/MenuItem";
 
 const Sidebar = () => {
-  const sideBarCollapsed = useSelector(
-    (state: RootState) => state.app.sideBarCollapsed,
-  );
+  const sideBarCollapsed = useSelector((state: RootState) => state.app.sideBarCollapsed);
 
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
 
@@ -27,15 +25,15 @@ const Sidebar = () => {
 
   return (
     <aside
-      className="bg-[#343a40] text-white flex flex-col h-[90vh] overflow-y-auto"
+      className="bg-[#343a40] text-white flex flex-col h-[90vh] overflow-y-auto hide-scrollbar"
       style={{
-        width: sideBarCollapsed ? "4rem" : "14rem",
+        width: sideBarCollapsed ? "4rem" : "15rem",
         transition: "width 0.3s",
         overflow: "hidden",
       }}
     >
       <nav className="flex-1 h-full">
-        <ul className="list-none py-4 flex flex-col gap-4 h-full overflow-y-auto">
+        <ul className="list-none py-4 flex flex-col gap-4 h-full overflow-y-auto hide-scrollbar">
           {MENU_ITEMS.map((item) => (
             <MenuItem
               key={item.href}

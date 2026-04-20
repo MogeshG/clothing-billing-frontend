@@ -8,9 +8,7 @@ import type { RootState } from "../store";
 const Header = () => {
   const dispatch = useDispatch();
 
-  const { companyName, sideBarCollapsed, user } = useSelector(
-    (state: RootState) => state.app,
-  );
+  const { companyName, sideBarCollapsed, user } = useSelector((state: RootState) => state.app);
 
   const toggleSidebar = () => {
     dispatch(setSideBarCollapsed(!sideBarCollapsed));
@@ -22,14 +20,11 @@ const Header = () => {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm">
+    <header className="h-[10vh] bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm">
       {/* LEFT SIDE */}
       <div className="flex items-center gap-3">
         {/* Sidebar toggle */}
-        <button
-          onClick={toggleSidebar}
-          className="p-2 rounded-md hover:bg-gray-100 transition"
-        >
+        <button onClick={toggleSidebar} className="p-2 rounded-md hover:bg-gray-100 transition">
           {sideBarCollapsed ? <MenuOpenIcon /> : <MenuIcon />}
         </button>
 
@@ -42,9 +37,7 @@ const Header = () => {
         {/* User Info */}
         <div className="text-right leading-tight hidden sm:block">
           <p className="text-sm text-gray-500">Welcome</p>
-          <p className="text-sm font-semibold text-gray-800">
-            {user?.name || "User"}
-          </p>
+          <p className="text-sm font-semibold text-gray-800">{user?.name || "User"}</p>
         </div>
 
         {/* Avatar */}

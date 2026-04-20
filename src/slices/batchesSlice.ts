@@ -7,31 +7,6 @@ interface BatchesState {
   error: string | null;
 }
 
-interface Batch {
-  id: string;
-  productVariantId: string;
-  productName: string;
-  variantSku: string;
-  hsnCode: string;
-  batchNo: string;
-  status: "PENDING" | "ACTIVE" | "BLOCKED" | "EXPIRED";
-  purchaseItemId?: string;
-  purchaseNo?: string;
-  vendorName?: string;
-  purchaseDate: string;
-  purchasePrice: number;
-  sellingPrice?: number;
-  cgstPercent: number;
-  sgstPercent: number;
-  igstPercent: number;
-  quantity: number;
-  remainingQuantity: number;
-  manufactureDate?: string;
-  expiryDate?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 const initialState: BatchesState = {
   batches: [],
   loading: false,
@@ -44,6 +19,7 @@ export const mockBatches: Batch[] = [
     productVariantId: "v1",
     productName: "Cotton T-Shirt",
     variantSku: "TSHIRT-001-BLK-M",
+    mrp: "499",
     barcode: "2342342342300",
     hsnCode: "6109",
     batchNo: "BATCH-001",
@@ -70,6 +46,7 @@ export const mockBatches: Batch[] = [
     productName: "Denim Jeans",
     barcode: "2342342342300",
     variantSku: "JEANS-101-BLU-32",
+    mrp: "1299",
     hsnCode: "6203",
     batchNo: "BATCH-002",
     status: "ACTIVE",
@@ -91,14 +68,11 @@ export const mockBatches: Batch[] = [
   },
 ];
 
-export const fetchBatches = createAsyncThunk(
-  "batches/fetchBatches",
-  async () => {
-    return new Promise<Batch[]>((resolve) => {
-      setTimeout(() => resolve(mockBatches), 500);
-    });
-  },
-);
+export const fetchBatches = createAsyncThunk("batches/fetchBatches", async () => {
+  return new Promise<Batch[]>((resolve) => {
+    setTimeout(() => resolve(mockBatches), 500);
+  });
+});
 
 export const updateBatch = createAsyncThunk(
   "batches/updateBatch",
@@ -122,6 +96,7 @@ export const updateBatch = createAsyncThunk(
 
       return mockBatches[index];
     } catch (error) {
+      console.error("Error updating batch:", error);
       return rejectWithValue("Failed to update batch");
     }
   },
@@ -145,6 +120,7 @@ export const blockBatch = createAsyncThunk(
 
       return mockBatches[index];
     } catch (error) {
+      console.error("Error blocking batch:", error);
       return rejectWithValue("Failed to block batch");
     }
   },
@@ -173,18 +149,14 @@ const batchesSlice = createSlice({
         state.error = action.payload as string;
       })
       .addCase(updateBatch.fulfilled, (state, action) => {
-        const index = state.batches.findIndex(
-          (b) => b.id === action.payload.id,
-        );
+        const index = state.batches.findIndex((b) => b.id === action.payload.id);
         if (index !== -1) {
           state.batches[index] = action.payload;
         }
         state.error = null;
       })
       .addCase(blockBatch.fulfilled, (state, action) => {
-        const index = state.batches.findIndex(
-          (b) => b.id === action.payload.id,
-        );
+        const index = state.batches.findIndex((b) => b.id === action.payload.id);
         if (index !== -1) {
           state.batches[index] = action.payload;
         }

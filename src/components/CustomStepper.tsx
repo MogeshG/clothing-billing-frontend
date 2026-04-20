@@ -1,6 +1,6 @@
 import React from "react";
-import { FiMinus, FiPlus } from "react-icons/fi";
-import CustomButton from "./CustomButton";
+import { RemoveCircle, AddCircle } from "@mui/icons-material";
+import { IconButton } from "@mui/material";
 
 type StepperProps = {
   value: number;
@@ -26,15 +26,22 @@ const Stepper: React.FC<StepperProps> = ({
 
   return (
     <div className="flex items-center gap-1">
-      <CustomButton
-        variant="outline"
-        size="sm"
-        className="h-7! w-7! rounded-sm! border-primary-500 bg-primary-300 hover:shadow-md"
+      <IconButton
+        sx={{
+          border: "1px solid",
+          color: "primary.main",
+          borderRadius: 10,
+          padding: 0,
+        }}
         onClick={onDecrease}
         disabled={!canDecrease}
       >
-        <FiMinus />
-      </CustomButton>
+        <RemoveCircle
+          sx={{
+            fontSize: "2rem",
+          }}
+        />
+      </IconButton>
 
       <input
         className={`w-12 text-center font-medium outline-none focus:border border-primary-300 text-sm rounded-sm ${inputClass}`}
@@ -42,15 +49,22 @@ const Stepper: React.FC<StepperProps> = ({
         value={value}
       />
 
-      <CustomButton
-        variant="outline"
-        size="sm"
-        className="h-7! w-7! rounded-sm! border-primary-500 bg-primary-300 hover:shadow-md"
+      <IconButton
+        sx={{
+          border: "1px solid",
+          color: "primary.main",
+          borderRadius: 10,
+          padding: 0,
+        }}
         onClick={onIncrease}
         disabled={!canIncrease}
       >
-        <FiPlus />
-      </CustomButton>
+        <AddCircle
+          sx={{
+            fontSize: "2rem",
+          }}
+        />
+      </IconButton>
     </div>
   );
 };
