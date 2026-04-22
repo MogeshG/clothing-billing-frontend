@@ -1,7 +1,11 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
-
-import type { ProductCategory } from "../types/productCategory";
+import type {
+  ProductCategory,
+  AddProductCategoryForm,
+} from "../types/productCategory";
+import axios from "axios";
+import { API_BASE } from "../utils/auth";
 
 interface ProductCategoriesState {
   productCategories: ProductCategory[];
@@ -17,134 +21,92 @@ const initialState: ProductCategoriesState = {
   selectedProductCategories: [],
 };
 
-// Mock data
-const mockProductCategories: ProductCategory[] = [
-  {
-    id: "cat1",
-    name: "Apparel",
-    description: "Clothing and apparel items",
-    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "cat2",
-    name: "Bottomwear",
-    description: "Pants, jeans, shorts",
-    createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "cat3",
-    name: "Footwear",
-    description: "Shoes, sandals, boots",
-    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "cat4",
-    name: "Accessories",
-    description: "Belts, wallets, sunglasses",
-    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "cat5",
-    name: "Electronics",
-    description: "Gadgets and electronics",
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "cat6",
-    name: "Home & Living",
-    description: "Home decor and living items",
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-// Thunks
 export const fetchProductCategories = createAsyncThunk(
   "productCategories/fetchProductCategories",
   async () => {
-    return new Promise<ProductCategory[]>((resolve) => {
-      setTimeout(() => resolve(mockProductCategories), 500);
+    const response = await axios.get(`/v1/categories`, {
+      baseURL: API_BASE,
     });
+    return response.data;
   },
 );
 
 export const addProductCategory = createAsyncThunk(
   "productCategories/addProductCategory",
-  async (category: Omit<ProductCategory, "id" | "createdAt" | "updatedAt">) => {
-    return new Promise<ProductCategory>((resolve) => {
-      setTimeout(() => {
-        const newCategory: ProductCategory = {
-          id: Math.random().toString(36).substr(2, 9),
-          ...category,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        mockProductCategories.push(newCategory);
-        resolve(newCategory);
-      }, 500);
-    });
+  async (
+    categoryData: AddProductCategoryForm,
+    { rejectWithValue },
+  ): Promise<ProductCategory> => {
+    try {
+      const response = await axios.post("/v1/categories", categoryData, {
+        baseURL: API_BASE,
+      });
+      return response.data.category;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to add category",
+      );
+    }
   },
 );
 
 export const updateProductCategory = createAsyncThunk(
   "productCategories/updateProductCategory",
-  async (category: ProductCategory) => {
-    return new Promise<ProductCategory>((resolve) => {
-      setTimeout(() => {
-        const index = mockProductCategories.findIndex(
-          (c) => c.id === category.id,
-        );
-        if (index !== -1) {
-          mockProductCategories[index] = {
-            ...category,
-            updatedAt: new Date().toISOString(),
-          };
-        }
-        resolve(mockProductCategories[index]);
-      }, 500);
-    });
+  async (
+    category: Partial<ProductCategory> & { id: string },
+    { rejectWithValue },
+  ): Promise<ProductCategory> => {
+    try {
+      const response = await axios.put(
+        `/v1/categories/${category.id}`,
+        category,
+        {
+          baseURL: API_BASE,
+        },
+      );
+      return response.data.category;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to update category",
+      );
+    }
   },
 );
 
 export const deleteProductCategories = createAsyncThunk(
   "productCategories/deleteProductCategories",
-  async (ids: string[]) => {
-    return new Promise<string[]>((resolve) => {
-      setTimeout(() => {
-        for (const id of ids) {
-          const index = mockProductCategories.findIndex((c) => c.id === id);
-          if (index !== -1) {
-            mockProductCategories.splice(index, 1);
-          }
-        }
-        resolve(ids);
-      }, 500);
-    });
+  async (ids: string[], { rejectWithValue }) => {
+    try {
+      const promises = ids.map((id) =>
+        axios.delete(`/v1/categories/${id}`, { baseURL: API_BASE }),
+      );
+      await Promise.all(promises);
+      return ids;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to delete categories",
+      );
+    }
   },
 );
 
 export const bulkCreateProductCategories = createAsyncThunk(
   "productCategories/bulkCreateProductCategories",
   async (
-    categories: Omit<ProductCategory, "id" | "createdAt" | "updatedAt">[],
-  ) => {
-    return new Promise<ProductCategory[]>((resolve) => {
-      setTimeout(() => {
-        const newCategories = categories.map((category) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          ...category,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }));
-        mockProductCategories.push(...newCategories);
-        resolve(newCategories);
-      }, 500);
-    });
+    categories: AddProductCategoryForm[],
+    { rejectWithValue },
+  ): Promise<ProductCategory[]> => {
+    try {
+      const promises = categories.map((categoryData) =>
+        axios.post("/v1/categories", categoryData, { baseURL: API_BASE }),
+      );
+      const responses = await Promise.all(promises);
+      return responses.map((res) => res.data.category);
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to bulk create categories",
+      );
+    }
   },
 );
 
@@ -175,11 +137,24 @@ const productCategoriesSlice = createSlice({
       .addCase(fetchProductCategories.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          action.error.message || "Failed to fetch product categories";
+          (action.payload as string) || "Failed to fetch product categories";
+      })
+      .addCase(addProductCategory.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
       .addCase(addProductCategory.fulfilled, (state, action) => {
-        state.productCategories.push(action.payload);
+        state.productCategories.unshift(action.payload);
         state.loading = false;
+        state.error = null;
+      })
+      .addCase(addProductCategory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(updateProductCategory.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
       .addCase(updateProductCategory.fulfilled, (state, action) => {
         const index = state.productCategories.findIndex(
@@ -189,12 +164,30 @@ const productCategoriesSlice = createSlice({
           state.productCategories[index] = action.payload;
         }
         state.loading = false;
+        state.error = null;
+      })
+      .addCase(updateProductCategory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(deleteProductCategories.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
       .addCase(deleteProductCategories.fulfilled, (state, action) => {
         state.productCategories = state.productCategories.filter(
           (c) => !action.payload.includes(c.id),
         );
         state.selectedProductCategories = [];
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(deleteProductCategories.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(bulkCreateProductCategories.fulfilled, (state, action) => {
+        state.productCategories.unshift(...action.payload);
         state.loading = false;
       });
   },

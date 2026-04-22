@@ -1,57 +1,89 @@
-import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useDispatch } from "react-redux";
+
 import { useParams, useNavigate } from "react-router-dom";
-import { Alert, Grid } from "@mui/material";
 import {
-  updatePurchase,
-  fetchPurchases,
-  clearError,
-} from "../../../slices/purchasesSlice";
-import { usePurchases } from "../../../hooks/usePurchases";
-import type { Purchase, UpdatePurchaseForm } from "../../../types/purchase";
+  Alert,
+  Checkbox,
+  FormControlLabel,
+  Grid,
+  IconButton,
+} from "@mui/material";
+import { updatePurchase, clearError } from "../../../slices/purchasesSlice";
+import { usePurchaseDetail } from "../../../hooks/usePurchases";
+import { useProducts } from "../../../hooks/useProducts";
+import { useVendors } from "../../../hooks/useVendors";
+import { useUnits } from "../../../hooks/useUnits";
+import type { ItemForm, UpdatePurchaseForm } from "../../../types/purchase";
+import type { AppDispatch } from "../../../store";
+
+import type { Product, ProductVariant } from "../../../types/product";
+import type { Vendor } from "../../../types/vendor";
+import type { Unit } from "../../../types/unit";
 import CustomInput from "../../../components/CustomInput";
-import CustomButton from "../../../components/CustomButton";
-import type { RootState, AppDispatch } from "../../../store";
 import CustomSelect from "../../../components/CustomSelect";
+import CustomButton from "../../../components/CustomButton";
+import CustomDatePicker from "../../../components/CustomDatePicker";
+import CustomSearch from "../../../components/CustomSearch";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { isValidGST, isValidPhone } from "../../../utils/validation";
+import { camelToSnake } from "../../../utils/caseConvert";
+import dayjs from "dayjs";
+import Loader from "../../../components/CustomLoader";
 
 const UpdatePurchasePage = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const { error, loading } = usePurchases();
+  const navigate = useNavigate();
+  const { purchase, loading, error } = usePurchaseDetail(id);
+  const { products } = useProducts();
+  const { vendors } = useVendors();
+  const { units } = useUnits();
 
-  const purchase = useSelector((state: RootState) =>
-    state.purchases.purchases.find((p) => p.id === id),
-  ) as Purchase | undefined;
+  const unitOptions = useMemo(
+    () =>
+      units.map((unit: Unit) => ({
+        label: `${unit.unitName} (${unit.symbol})`,
+        value: unit.id,
+      })),
+    [units],
+  );
 
   const [formData, setFormData] = useState<Partial<UpdatePurchaseForm>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [items, setItems] = useState<ItemForm[]>([]);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
 
+  // Pre-populate form and items when purchase loads
   useEffect(() => {
-    if (!purchase) {
-      dispatch(fetchPurchases());
-    } else {
+    if (purchase && id) {
       setFormData({
         purchaseNo: purchase.purchaseNo,
-        status: purchase.status,
         vendorName: purchase.vendorName,
-        vendorPhone: purchase.vendorPhone,
-        vendorGstin: purchase.vendorGstin,
-        purchaseDate: new Date(purchase.purchaseDate)
-          .toISOString()
-          .split("T")[0],
+        vendorPhone: purchase.vendorPhone || "",
+        vendorGstin: purchase.vendorGstin || "",
+        discount: purchase.discount || 0,
+        purchaseDate: dayjs(purchase.purchaseDate).format("YYYY-MM-DD"),
       });
-      setIsReadOnly(purchase.status === "COMPLETED");
+
+      setItems(purchase.items);
+
+      const matchingVendor = vendors.find(
+        (v) => v.name === purchase.vendorName,
+      );
+      if (matchingVendor) setSelectedVendor(matchingVendor);
     }
-  }, [purchase, dispatch]);
+  }, [purchase, vendors, id]);
+
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     let valid = true;
-
-    if (isReadOnly) return true; // Skip validation for read-only
 
     if (!formData.purchaseNo?.trim()) {
       newErrors.purchaseNo = "Purchase No required";
@@ -61,36 +93,108 @@ const UpdatePurchasePage = () => {
       newErrors.vendorName = "Vendor name required";
       valid = false;
     }
+    if (formData.vendorPhone && !isValidPhone(formData.vendorPhone)) {
+      newErrors.vendorPhone = "Invalid Phone number";
+      valid = false;
+    }
+    if (formData.vendorGstin && !isValidGST(formData.vendorGstin)) {
+      newErrors.vendorGstin = "Invalid GSTIN";
+      valid = false;
+    }
+
+    items.forEach((item, index) => {
+      if (!item.itemType) {
+        newErrors[`itemType_${index}`] = "Item type required";
+        valid = false;
+      }
+      if (!item.itemName.trim()) {
+        newErrors[`itemName_${index}`] = "Item name required";
+        valid = false;
+      }
+      if (!item.unitId) {
+        newErrors[`unitId_${index}`] = "Unit required";
+        valid = false;
+      }
+      if (item.quantity <= 0) {
+        newErrors[`quantity_${index}`] = "Quantity must be > 0";
+        valid = false;
+      }
+      if (item.costPrice <= 0) {
+        newErrors[`costPrice_${index}`] = "Price must be > 0";
+        valid = false;
+      }
+    });
+
+    if (items.length === 0) {
+      newErrors.items = "At least one item required";
+      valid = false;
+    }
 
     setErrors(newErrors);
     return valid;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleDraftSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !validateForm()) return;
-
-    if (isReadOnly) {
-      alert("Cannot update completed purchases");
+    if (!id || !formData.purchaseNo?.trim() || items.length === 0) {
+      setErrors({
+        draftError: "Purchase No and at least one item required for draft",
+      });
       return;
     }
 
-    const updateData: UpdatePurchaseForm & { id: string } = {
+    const camelData = {
       id: id!,
-      purchaseNo: formData.purchaseNo?.trim(),
-      status: (formData.status || purchase.status!) as
-        | "DRAFT"
-        | "COMPLETED"
-        | "CANCELLED",
-      vendorName: formData.vendorName?.trim(),
-      vendorPhone: formData.vendorPhone?.trim(),
-      vendorGstin: formData.vendorGstin?.trim(),
-      purchaseDate: formData.purchaseDate,
+      purchaseNo: formData.purchaseNo!.trim(),
+      vendorName: formData.vendorName?.trim() || "",
+      vendorPhone: formData.vendorPhone?.trim() || "",
+      vendorGstin: formData.vendorGstin?.trim() || "",
+      status: "DRAFT" as const,
+      purchaseDate: formData.purchaseDate || dayjs().format("YYYY-MM-DD"),
+      discount: formData.discount || 0,
+      items: items.map((item) => ({
+        ...item,
+        total: Number(item.total),
+      })),
     };
+
+    const payload = { id: id!, ...camelToSnake(camelData) };
 
     setIsSubmitting(true);
     try {
-      await dispatch(updatePurchase(updateData)).unwrap();
+      await dispatch(updatePurchase(payload)).unwrap();
+      navigate("/purchases");
+    } catch (err) {
+      console.error("Save draft failed:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm() || !id) return;
+
+    const camelData = {
+      id: id!,
+      purchaseNo: formData.purchaseNo!.trim(),
+      vendorName: formData.vendorName!.trim(),
+      vendorPhone: formData.vendorPhone?.trim() || "",
+      vendorGstin: formData.vendorGstin?.trim() || "",
+      status: "COMPLETED" as const,
+      purchaseDate: formData.purchaseDate || dayjs().format("YYYY-MM-DD"),
+      discount: formData.discount || 0,
+      items: items.map((item) => ({
+        ...item,
+        total: Number(item.total),
+      })),
+    };
+
+    const payload = { id: id!, ...camelToSnake(camelData) };
+
+    setIsSubmitting(true);
+    try {
+      await dispatch(updatePurchase(payload)).unwrap();
       navigate("/purchases");
     } catch (err) {
       console.error("Update purchase failed:", err);
@@ -99,92 +203,271 @@ const UpdatePurchasePage = () => {
     }
   };
 
-  if (!purchase && !loading) {
-    return <div>Purchase not found</div>;
-  }
+  const variantOptions = useMemo(() => {
+    const options: { label: string; value: string; variant: ProductVariant }[] =
+      [];
+    products.forEach((product: Product) => {
+      product.variant.forEach((v) => {
+        options.push({
+          label: `${product.name} - ${v.sku || v.size}/${v.color}`,
+          value: v.id,
+          variant: v,
+        });
+      });
+    });
+    return options;
+  }, [products]);
+
+  const handleVariantSelect = useCallback(
+    (index: number, variantId: string) => {
+      const option = variantOptions.find((opt) => opt.value === variantId);
+      if (option && option.variant) {
+        const v = option.variant;
+        const product = products.find((p) =>
+          p.variant.some((vv) => vv.id === v.id),
+        );
+        const generatedName = `${product?.name || ""} - ${v.sku || v.size}/${v.color}`;
+        updateItem(index, "itemName", generatedName);
+        updateItem(index, "sku", v.sku || "");
+        updateItem(index, "size", v.size);
+        updateItem(index, "color", v.color);
+        updateItem(index, "productVariantId", v.id);
+        updateItem(index, "costPrice", Number(v.costPrice));
+        updateItem(index, "hsnCode", product?.hsnCode || "");
+        updateItem(index, "cgstPercent", Number(product?.cgstPercent || 0));
+        updateItem(index, "sgstPercent", Number(product?.sgstPercent || 0));
+        updateItem(index, "igstPercent", Number(product?.igstPercent || 0));
+        updateItem(index, "itemType", "FINISHED");
+        updateItem(index, "taxInclusive", product?.taxInclusive || false);
+        updateItem(index, "sellingPrice", v.sellingPrice);
+        updateItem(index, "mrp", v.mrp);
+        const taxRate = product?.taxInclusive
+          ? 0
+          : ((Number(product?.cgstPercent) || 0) +
+              Number(product?.sgstPercent || 0)) /
+            100;
+        updateItem(
+          index,
+          "total",
+          (Number(v.costPrice) * 1 * (1 + taxRate)).toFixed(2),
+        );
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [products, variantOptions],
+  );
+
+  const resetItemDataOnTypeChange = useCallback(
+    (index: number, newType: "RAW" | "FINISHED") => {
+      if (newType === "RAW") {
+        updateItem(index, "productVariantId", "");
+        updateItem(index, "sku", "");
+        updateItem(index, "size", "");
+        updateItem(index, "color", "");
+        updateItem(index, "mrp", 0);
+        updateItem(index, "sellingPrice", 0);
+        updateItem(index, "hsnCode", "");
+        updateItem(index, "cgstPercent", 0);
+        updateItem(index, "sgstPercent", 0);
+        updateItem(index, "igstPercent", 0);
+        updateItem(index, "itemName", "");
+      } else if (newType === "FINISHED") {
+        updateItem(index, "itemName", "");
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const addItem = useCallback(() => {
+    setItems([
+      ...items,
+      {
+        itemName: "",
+        itemType: "RAW" as const,
+        hsnCode: "",
+        quantity: 1,
+        costPrice: 0,
+        cgstPercent: 0,
+        sgstPercent: 0,
+        igstPercent: 0,
+        total: 0,
+        sku: "",
+        size: "",
+        color: "",
+        productVariantId: "",
+        unitId: "",
+        unitName: "",
+        unitSymbol: "",
+        mrp: 0,
+        sellingPrice: 0,
+        taxInclusive: false,
+      },
+    ]);
+  }, [items]);
+
+  const updateItem = useCallback(
+    (index: number, field: keyof ItemForm, value: any) => {
+      setItems((prevItems) => {
+        const newItems = [...prevItems];
+        const updatedItem = { ...newItems[index], [field]: value } as ItemForm;
+
+        if (
+          [
+            "costPrice",
+            "quantity",
+            "cgstPercent",
+            "sgstPercent",
+            "taxInclusive",
+          ].includes(field)
+        ) {
+          const quantity = Number(updatedItem.quantity) || 0;
+          const price = Number(updatedItem.costPrice) || 0;
+          const cgst = Number(updatedItem.cgstPercent) || 0;
+          const sgst = Number(updatedItem.sgstPercent) || 0;
+          const totalTaxPercent = cgst + sgst;
+          const taxInclusive = Boolean(updatedItem.taxInclusive);
+
+          let subtotal;
+          if (taxInclusive) {
+            const exclusivePrice = price / (1 + totalTaxPercent / 100);
+            subtotal = exclusivePrice * quantity;
+          } else {
+            subtotal = price * quantity;
+          }
+          const newTotal = subtotal * (1 + totalTaxPercent / 100);
+          updatedItem.total = Number(newTotal.toFixed(2));
+        }
+
+        newItems[index] = updatedItem;
+        return newItems;
+      });
+    },
+    [],
+  );
+
+  const removeItem = useCallback((index: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const subtotal = items.reduce((sum, item) => {
+    const {
+      quantity,
+      costPrice,
+      cgstPercent = 0,
+      sgstPercent = 0,
+      taxInclusive,
+    } = item;
+    const totalTaxPercent = cgstPercent + sgstPercent;
+    const lineAmount = quantity * costPrice;
+    return (
+      sum +
+      (taxInclusive ? lineAmount / (1 + totalTaxPercent / 100) : lineAmount)
+    );
+  }, 0);
+
+  const discount = formData.discount || 0;
+
+  const cgstTotal = items.reduce((sum, item) => {
+    const qty = item.quantity || 1;
+    const price = item.costPrice || 0;
+    const cgstPercent = item.cgstPercent || 0;
+    const sgstPercent = item.sgstPercent || 0;
+    const totalPercent = cgstPercent + sgstPercent;
+    const lineTotal = qty * price;
+    const base = item.taxInclusive
+      ? lineTotal / (1 + totalPercent / 100)
+      : lineTotal;
+    return sum + base * (cgstPercent / 100);
+  }, 0);
+
+  const sgstTotal = items.reduce((sum, item) => {
+    const qty = item.quantity || 1;
+    const price = item.costPrice || 0;
+    const cgstPercent = item.cgstPercent || 0;
+    const sgstPercent = item.sgstPercent || 0;
+    const totalPercent = cgstPercent + sgstPercent;
+    const lineTotal = qty * price;
+    const base = item.taxInclusive
+      ? lineTotal / (1 + totalPercent / 100)
+      : lineTotal;
+    return sum + base * (sgstPercent / 100);
+  }, 0);
+
+  const grandTotal = subtotal - discount + cgstTotal + sgstTotal;
+
+  if (loading) return <Loader />;
+  if (!purchase) return <div>Purchase not found</div>;
 
   return (
     <div className="flex flex-col m-2 w-full space-y-4 p-3 overflow-y-auto">
       <h1 className="text-3xl font-bold text-gray-800">
-        {isReadOnly ? "View Purchase" : "Update Purchase"}
+        Update Purchase
+        <span className="text-xl ml-2"># {purchase.purchaseNo}</span>
       </h1>
-      <div className="flex flex-col w-full bg-white space-y-6 p-6 rounded-md mx-auto max-w-6xl">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex flex-col w-full bg-white space-y-6 p-6 rounded-md mx-auto">
+        <form className="space-y-4">
           {error && (
             <Alert severity="error" onClose={() => dispatch(clearError())}>
               {error}
             </Alert>
           )}
 
-          {isReadOnly && (
-            <Alert severity="info">
-              <strong>Read-only:</strong> Completed purchases cannot be edited.
-            </Alert>
-          )}
-
           {/* Header Section */}
           <div className="flex flex-col gap-2">
             <h2 className="text-xl font-semibold text-gray-700">
-              Purchase Details
+              Purchase Info
             </h2>
             <Grid container spacing={3}>
               <Grid size={{ xs: 12, md: 4 }}>
                 <CustomInput
-                  label="Purchase No *"
+                  label="Purchase No"
                   placeholder="PURCHASE-001"
                   value={formData.purchaseNo || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, purchaseNo: e.target.value })
                   }
-                  disabled={isReadOnly}
+                  required
                   hasError={!!errors.purchaseNo}
                   errorText={errors.purchaseNo}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 4 }}>
-                <CustomInput
+                <CustomDatePicker
                   label="Purchase Date"
-                  type="date"
-                  value={formData.purchaseDate || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, purchaseDate: e.target.value })
+                  value={
+                    formData.purchaseDate ? dayjs(formData.purchaseDate) : null
                   }
-                  disabled={isReadOnly}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 4 }}>
-                <CustomSelect
-                  label="Status"
-                  value={formData.status || purchase?.status || "DRAFT"}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     setFormData({
                       ...formData,
-                      status: e.target.value as
-                        | "DRAFT"
-                        | "COMPLETED"
-                        | "CANCELLED",
+                      purchaseDate: val ? val.format("YYYY-MM-DD") : "",
                     })
                   }
-                  disabled={isReadOnly}
-                  options={[
-                    { label: "Draft", value: "DRAFT" },
-                    { label: "Completed", value: "COMPLETED" },
-                    { label: "Cancelled", value: "CANCELLED" },
-                  ]}
                 />
               </Grid>
-
               <Grid size={{ xs: 12, md: 4 }}>
-                <CustomInput
-                  label="Vendor Name *"
-                  placeholder="ABC Vendor"
-                  value={formData.vendorName || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, vendorName: e.target.value })
-                  }
-                  disabled={isReadOnly}
+                <CustomSearch
+                  data={vendors}
+                  label="Vendor Name"
+                  value={selectedVendor}
+                  placeholder="Search vendors or type new..."
                   hasError={!!errors.vendorName}
                   errorText={errors.vendorName}
+                  getLabel={(vendor: Vendor) => vendor.name}
+                  onChange={(input) =>
+                    setFormData({ ...formData, vendorName: input })
+                  }
+                  onSelect={(vendor) => {
+                    setSelectedVendor(vendor);
+                    setFormData({
+                      ...formData,
+                      vendorName: vendor?.name || "",
+                      vendorPhone: vendor?.phone || formData.vendorPhone || "",
+                      vendorGstin: vendor?.gstin || formData.vendorGstin || "",
+                    });
+                  }}
+                  required
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 4 }}>
@@ -195,7 +478,8 @@ const UpdatePurchasePage = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, vendorPhone: e.target.value })
                   }
-                  disabled={isReadOnly}
+                  hasError={!!errors.vendorPhone}
+                  errorText={errors.vendorPhone}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 4 }}>
@@ -206,33 +490,313 @@ const UpdatePurchasePage = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, vendorGstin: e.target.value })
                   }
-                  disabled={isReadOnly}
+                  hasError={!!errors.vendorGstin}
+                  errorText={errors.vendorGstin}
                 />
               </Grid>
             </Grid>
           </div>
 
-          {/* Totals (Read-only) */}
-          {purchase && (
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500">Sub Total:</span>
-                  <div>₹{Number(purchase.subTotal).toLocaleString()}</div>
+          {/* Items Section */}
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-700">
+                Purchase Items ({items.length})
+              </h2>
+              <CustomButton
+                variant="outlined"
+                onClick={addItem}
+                disabled={isSubmitting}
+              >
+                Add Item
+              </CustomButton>
+            </div>
+            {errors.items && <Alert severity="error">{errors.items}</Alert>}
+            {errors.draftError && (
+              <Alert severity="error">{errors.draftError}</Alert>
+            )}
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {items.map((item, index) => (
+                <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex justify-between items-start mb-4">
+                    <h4 className="font-medium">Item {index + 1}</h4>
+                    <IconButton
+                      size="small"
+                      onClick={() => removeItem(index)}
+                      disabled={isSubmitting}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </div>
+                  <Grid container spacing={2}>
+                    <Grid size={2.5}>
+                      <CustomSelect
+                        label="Item Type"
+                        value={item.itemType}
+                        onChange={(e) => {
+                          const newType = e.target.value as "RAW" | "FINISHED";
+                          updateItem(index, "itemType", newType);
+                          resetItemDataOnTypeChange(index, newType);
+                        }}
+                        options={[
+                          { label: "Raw Material", value: "RAW" },
+                          { label: "Finished Goods", value: "FINISHED" },
+                        ]}
+                        hasError={!!errors[`itemType_${index}`]}
+                        errorText={errors[`itemType_${index}`]}
+                      />
+                    </Grid>
+                    <Grid size={3}>
+                      {item.itemType === "RAW" ? (
+                        <CustomInput
+                          label="Item Name"
+                          value={item.itemName}
+                          onChange={(e) =>
+                            updateItem(index, "itemName", e.target.value)
+                          }
+                          hasError={!!errors[`itemName_${index}`]}
+                          errorText={errors[`itemName_${index}`]}
+                        />
+                      ) : (
+                        <CustomSearch
+                          data={variantOptions}
+                          label="Select Product Variant *"
+                          value={
+                            variantOptions.find(
+                              (opt) => opt.value === item.productVariantId,
+                            ) || null
+                          }
+                          placeholder="Search product variants..."
+                          hasError={!!errors[`itemName_${index}`]}
+                          errorText={errors[`itemName_${index}`]}
+                          getLabel={(option) =>
+                            typeof option === "string" ? option : option.label
+                          }
+                          onChange={() => {}}
+                          onSelect={(opt) => {
+                            if (opt && typeof opt !== "string") {
+                              handleVariantSelect(index, opt.value);
+                            }
+                          }}
+                        />
+                      )}
+                    </Grid>
+                    <Grid size={2}>
+                      <CustomInput
+                        label="HSN Code"
+                        value={item.hsnCode}
+                        onChange={(e) =>
+                          updateItem(index, "hsnCode", e.target.value)
+                        }
+                      />
+                    </Grid>
+                    <Grid size={1.5}>
+                      <CustomInput
+                        label="CGST %"
+                        type="number"
+                        value={item.cgstPercent}
+                        onChange={(e) =>
+                          updateItem(
+                            index,
+                            "cgstPercent",
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
+                      />
+                    </Grid>
+                    <Grid size={1.5}>
+                      <CustomInput
+                        label="SGST %"
+                        type="number"
+                        value={item.sgstPercent}
+                        onChange={(e) =>
+                          updateItem(
+                            index,
+                            "sgstPercent",
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
+                      />
+                    </Grid>
+                    <Grid size={1.5}>
+                      <CustomInput
+                        label="IGST %"
+                        type="number"
+                        value={item.igstPercent}
+                        onChange={(e) =>
+                          updateItem(
+                            index,
+                            "igstPercent",
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
+                      />
+                    </Grid>
+                    <Grid size={1.5}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={item.taxInclusive}
+                            onChange={(e) =>
+                              updateItem(
+                                index,
+                                "taxInclusive",
+                                e.target.checked,
+                              )
+                            }
+                          />
+                        }
+                        label="Tax Inclusive"
+                      />
+                    </Grid>
+                    <Grid size={2}>
+                      <CustomInput
+                        label="Quantity"
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) =>
+                          updateItem(
+                            index,
+                            "quantity",
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
+                        required
+                        hasError={!!errors[`quantity_${index}`]}
+                        errorText={errors[`quantity_${index}`]}
+                      />
+                    </Grid>
+                    <Grid size={2}>
+                      <CustomSelect
+                        label="Unit"
+                        required
+                        value={item.unitId}
+                        onChange={(e) => {
+                          const unitId = e.target.value as string;
+                          updateItem(index, "unitId", unitId);
+                          const selectedUnit = units.find(
+                            (u: Unit) => u.id === unitId,
+                          );
+                          if (selectedUnit) {
+                            updateItem(
+                              index,
+                              "unitName",
+                              selectedUnit.unitName,
+                            );
+                            updateItem(
+                              index,
+                              "unitSymbol",
+                              selectedUnit.symbol,
+                            );
+                          }
+                        }}
+                        options={unitOptions}
+                        hasError={!!errors[`unitId_${index}`]}
+                        errorText={errors[`unitId_${index}`]}
+                      />
+                    </Grid>
+                    <Grid size={1.5}>
+                      <CustomInput
+                        label="Cost Price"
+                        type="number"
+                        required
+                        value={item.costPrice}
+                        onChange={(e) =>
+                          updateItem(
+                            index,
+                            "costPrice",
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
+                        hasError={!!errors[`costPrice_${index}`]}
+                        errorText={errors[`costPrice_${index}`]}
+                      />
+                    </Grid>
+                    <Grid size={3.5}>
+                      <CustomInput
+                        label="Total (₹)"
+                        type="number"
+                        value={item.total}
+                        disabled
+                      />
+                    </Grid>
+                  </Grid>
                 </div>
-                <div>
-                  <span className="text-gray-500">Discount:</span>
-                  <div>₹{Number(purchase.discount).toLocaleString()}</div>
-                </div>
-                <div>
-                  <span className="text-gray-500">Tax:</span>
-                  <div>₹{Number(purchase.taxAmount).toLocaleString()}</div>
-                </div>
-                <div>
-                  <span className="font-semibold">
-                    Total: ₹{Number(purchase.totalAmount).toLocaleString()}
-                  </span>
-                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Summary */}
+          {items.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h2 className="text-xl font-semibold text-gray-700">Summary</h2>
+              <div className="bg-blue-50 border rounded-lg p-6">
+                <Grid container spacing={2}>
+                  <Grid size={5}>
+                    <CustomInput
+                      label="Discount (₹)"
+                      type="number"
+                      value={formData.discount || 0}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          discount: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={12}>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span className="font-semibold">
+                          ₹
+                          {subtotal.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-green-600">
+                        <span>CGST:</span>
+                        <span className="font-semibold">
+                          ₹
+                          {cgstTotal.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-green-600">
+                        <span>SGST:</span>
+                        <span className="font-semibold">
+                          ₹
+                          {sgstTotal.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-red-600 font-semibold">
+                        <span>Discount (-):</span>
+                        <span>
+                          ₹
+                          {discount.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <div className="border-t pt-2 mt-2">
+                        <div className="flex justify-between text-2xl font-bold text-gray-900">
+                          <span>Grand Total:</span>
+                          <span>
+                            ₹
+                            {grandTotal.toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Grid>
+                </Grid>
               </div>
             </div>
           )}
@@ -243,17 +807,22 @@ const UpdatePurchasePage = () => {
               onClick={() => navigate("/purchases")}
               disabled={isSubmitting}
             >
-              Back
+              Cancel
             </CustomButton>
-            {!isReadOnly && (
-              <CustomButton
-                variant="contained"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Updating..." : "Update Purchase"}
-              </CustomButton>
-            )}
+            <CustomButton
+              className="bg-gray-600!"
+              onClick={handleDraftSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Saving..." : "Save Draft"}
+            </CustomButton>
+            <CustomButton
+              variant="contained"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create Purchase"}
+            </CustomButton>
           </div>
         </form>
       </div>

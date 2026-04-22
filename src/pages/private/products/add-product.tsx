@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
+import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import { useDispatch } from "react-redux";
+import { useProductCategories } from "../../../hooks/useProductCategories";
+import CustomSearch from "../../../components/CustomSearch";
+
 import { useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -20,11 +24,13 @@ import type {
 import CustomInput from "../../../components/CustomInput";
 import CustomButton from "../../../components/CustomButton";
 import type { AppDispatch } from "../../../store";
+import { Percent } from "@mui/icons-material";
 
 const AddProductPage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { error } = useProducts();
+  const { productCategories } = useProductCategories();
   const [formData, setFormData] = useState<Partial<AddProductForm>>({});
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [variantErrors, setVariantErrors] = useState<
@@ -39,12 +45,29 @@ const AddProductPage = () => {
     costPrice: 0,
     sellingPrice: 0,
     mrp: 0,
+    sku: "",
   });
+  const [showNewVariantForm, setShowNewVariantForm] = useState(false);
 
   // Clear redux error on mount
   useEffect(() => {
     dispatch(clearError());
   }, [dispatch]);
+
+  const clearNewVariant = () => {
+    setNewVariant({
+      size: "",
+      color: "",
+      barcode: "",
+      costPrice: 0,
+      sellingPrice: 0,
+      mrp: 0,
+      sku: "",
+    });
+    const updatedVariantErrors = { ...variantErrors };
+    delete updatedVariantErrors[-1];
+    setVariantErrors(updatedVariantErrors);
+  };
 
   const addVariant = () => {
     const variantErrorsList: Record<string, string> = {};
@@ -77,15 +100,8 @@ const AddProductPage = () => {
       mrp: newVariant.mrp!,
     };
     setVariants([...variants, completeVariant]);
-    setNewVariant({
-      size: "",
-      color: "",
-      barcode: "",
-      costPrice: 0,
-      sellingPrice: 0,
-      mrp: 0,
-    });
-    setVariantErrors({ ...variantErrors });
+    setShowNewVariantForm(false);
+    clearNewVariant();
   };
 
   const removeVariant = (index: number) => {
@@ -100,7 +116,6 @@ const AddProductPage = () => {
     value: string | number,
   ) => {
     setNewVariant({ ...newVariant, [field]: value });
-    // Clear error
     const tempErrors = variantErrors[-1] || {};
     if (tempErrors[field as string]) {
       const updated = { ...variantErrors };
@@ -120,7 +135,6 @@ const AddProductPage = () => {
       i === index ? { ...v, [field]: value } : v,
     );
     setVariants(updatedVariants);
-    // Clear error
     const errorsForVariant = variantErrors[index] || {};
     if (errorsForVariant[field as string]) {
       const updatedErrors = { ...variantErrors };
@@ -148,18 +162,34 @@ const AddProductPage = () => {
       valid = false;
     }
     if (
-      typeof formData.gstPercent !== "number" ||
-      formData.gstPercent! < 0 ||
-      formData.gstPercent! > 100
+      typeof formData.cgstPercent !== "number" ||
+      formData.cgstPercent! < 0 ||
+      formData.cgstPercent! > 100
     ) {
-      errors.gstPercent = "GST must be between 0-100";
+      errors.cgstPercent = "GST must be between 0-100";
+      valid = false;
+    }
+    if (
+      typeof formData.sgstPercent !== "number" ||
+      formData.sgstPercent! < 0 ||
+      formData.sgstPercent! > 100
+    ) {
+      errors.sgstPercent = "GST must be between 0-100";
+      valid = false;
+    }
+    if (
+      typeof formData.igstPercent !== "number" ||
+      formData.igstPercent! < 0 ||
+      formData.igstPercent! > 100
+    ) {
+      errors.igstPercent = "GST must be between 0-100";
       valid = false;
     }
 
     // Validate variants
     if (variants.length === 0) {
+      errors.noVariants = "At least one variant required";
       valid = false;
-      // Set a general error, perhaps via formErrors or handle separately
     } else {
       variants.forEach((variant, index) => {
         const vErrors: Record<string, string> = {};
@@ -184,17 +214,38 @@ const AddProductPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
-    const submitData: AddProductForm = {
-      ...(formData as Omit<AddProductForm, "variants">),
-      variants,
-      taxInclusive: formData.taxInclusive || false,
-    } as AddProductForm;
+    // Transform to snake_case for backend
+    const transformedVariants = variants.map((v) => ({
+      size: v.size,
+      color: v.color,
+      barcode: v.barcode,
+      sku: v.sku,
+      cost_price: v.costPrice,
+      selling_price: v.sellingPrice,
+      mrp: v.mrp,
+    }));
+    const apiData = {
+      name: formData.name,
+      sku: formData.sku,
+      hsn_code: formData.hsnCode,
+      description: formData.description,
+      category_id: formData.categoryId,
+      brand: formData.brand,
+      cgst_percent: formData.cgstPercent,
+      sgst_percent: formData.sgstPercent,
+      igst_percent: formData.igstPercent,
+      tax_inclusive: formData.taxInclusive || false,
+      variants: transformedVariants,
+      is_active: true,
+    };
 
     setIsSubmitting(true);
     try {
-      await dispatch(addProduct(submitData)).unwrap();
+      await dispatch(addProduct(apiData)).unwrap();
       navigate("/products");
     } catch (err) {
       console.error("Add product failed:", err);
@@ -208,7 +259,6 @@ const AddProductPage = () => {
     value: string | number | boolean,
   ) => {
     setFormData({ ...formData, [field]: value });
-    // Clear field error on change
     if (formErrors[field as string]) {
       setFormErrors({ ...formErrors, [field as string]: "" });
     }
@@ -258,7 +308,7 @@ const AddProductPage = () => {
 
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <CustomInput
-                  label="SKU"
+                  label="SKU (Optional)"
                   placeholder="Enter SKU"
                   value={formData.sku || ""}
                   onChange={(e) => handleChange("sku", e.target.value)}
@@ -276,29 +326,63 @@ const AddProductPage = () => {
               </Grid>
 
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                <CustomInput
+                <CustomSearch
+                  data={productCategories}
+                  value={
+                    productCategories.find(
+                      (c) => c.id === formData.categoryId,
+                    ) || null
+                  }
+                  getLabel={(cat) => cat.name}
+                  onSelect={(cat) => handleChange("categoryId", cat?.id || "")}
                   label="Category"
-                  placeholder="e.g., cat1"
-                  value={formData.categoryId || ""}
-                  onChange={(e) => handleChange("categoryId", e.target.value)}
-                  hasError={!!formErrors.categoryId}
-                  errorText={formErrors.categoryId}
+                  placeholder="Search category..."
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6, lg: 2 }}>
+                <CustomInput
+                  label="CGST %"
+                  type="number"
+                  placeholder="0"
+                  value={formData.cgstPercent || ""}
+                  onChange={(e) =>
+                    handleChange("cgstPercent", Number(e.target.value) || 0)
+                  }
+                  hasError={!!formErrors.cgstPercent}
+                  errorText={formErrors.cgstPercent}
+                  endIcon={<Percent />}
                   required
                 />
               </Grid>
 
               <Grid size={{ xs: 12, md: 6, lg: 2 }}>
                 <CustomInput
-                  label="GST %"
+                  label="SGST %"
                   type="number"
                   placeholder="0"
-                  value={formData.gstPercent || ""}
+                  value={formData.sgstPercent || ""}
                   onChange={(e) =>
-                    handleChange("gstPercent", parseFloat(e.target.value) || 0)
+                    handleChange("sgstPercent", Number(e.target.value) || 0)
                   }
-                  hasError={!!formErrors.gstPercent}
-                  errorText={formErrors.gstPercent}
-                  endIcon="%"
+                  hasError={!!formErrors.sgstPercent}
+                  errorText={formErrors.sgstPercent}
+                  endIcon={<Percent />}
+                  required
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6, lg: 2 }}>
+                <CustomInput
+                  label="IGST %"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igstPercent || ""}
+                  onChange={(e) =>
+                    handleChange("igstPercent", Number(e.target.value) || 0)
+                  }
+                  hasError={!!formErrors.igstPercent}
+                  errorText={formErrors.igstPercent}
+                  endIcon={<Percent />}
                   required
                 />
               </Grid>
@@ -317,7 +401,7 @@ const AddProductPage = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 8, lg: 8 }}>
                 <CustomInput
                   label="Description"
                   placeholder="Enter product description"
@@ -338,119 +422,158 @@ const AddProductPage = () => {
                 </h2>
                 <p className="text-sm text-gray-500">Add variants</p>
               </div>
-              <CustomButton
-                variant="outlined"
-                size="small"
-                className="h-fit! py-2!"
-                startIcon={<AddIcon />}
-                onClick={addVariant}
-              >
-                Add Variant
-              </CustomButton>
+              <div className="flex gap-2">
+                <CustomButton
+                  variant="outlined"
+                  size="small"
+                  className="h-fit! py-2!"
+                  startIcon={<AddIcon />}
+                  onClick={() => {
+                    setShowNewVariantForm(true);
+                    clearNewVariant();
+                  }}
+                >
+                  Add Another
+                </CustomButton>
+              </div>
             </div>
-            {/* New Variant Form */}
-            <div className="border p-4 rounded-md bg-gray-50">
-              <p className="text-sm text-gray-600 mb-3 font-medium">
-                New Variant Details:
-              </p>
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <CustomInput
-                    label="Size"
-                    placeholder="e.g., M"
-                    value={newVariant.size || ""}
-                    onChange={(e) => updateNewVariant("size", e.target.value)}
-                    hasError={!!variantErrors[-1]?.size}
-                    errorText={variantErrors[-1]?.size}
-                    required
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <CustomInput
-                    label="Color"
-                    placeholder="e.g., Blue"
-                    value={newVariant.color || ""}
-                    onChange={(e) => updateNewVariant("color", e.target.value)}
-                    hasError={!!variantErrors[-1]?.color}
-                    errorText={variantErrors[-1]?.color}
-                    required
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <CustomInput
-                    label="Barcode"
-                    placeholder="Enter barcode"
-                    value={newVariant.barcode || ""}
-                    onChange={(e) =>
-                      updateNewVariant("barcode", e.target.value)
-                    }
-                    hasError={!!variantErrors[-1]?.barcode}
-                    errorText={variantErrors[-1]?.barcode}
-                    required
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <CustomInput
-                    label="SKU"
-                    placeholder="Optional"
-                    value={newVariant.sku || ""}
-                    onChange={(e) => updateNewVariant("sku", e.target.value)}
-                    required
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <CustomInput
-                    label="Cost Price"
-                    type="number"
-                    placeholder="0"
-                    value={newVariant.costPrice || ""}
-                    onChange={(e) =>
-                      updateNewVariant(
-                        "costPrice",
-                        parseFloat(e.target.value) || 0,
-                      )
-                    }
-                    startIcon="₹"
-                    hasError={!!variantErrors[-1]?.costPrice}
-                    errorText={variantErrors[-1]?.costPrice}
-                    required
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <CustomInput
-                    label="MRP"
-                    type="number"
-                    placeholder="0"
-                    value={newVariant.mrp || ""}
-                    onChange={(e) =>
-                      updateNewVariant("mrp", parseFloat(e.target.value) || 0)
-                    }
-                    startIcon="₹"
-                    hasError={!!variantErrors[-1]?.mrp}
-                    errorText={variantErrors[-1]?.mrp}
-                    required
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <CustomInput
-                    label="Selling Price"
-                    type="number"
-                    placeholder="0"
-                    value={newVariant.sellingPrice || ""}
-                    onChange={(e) =>
-                      updateNewVariant(
-                        "sellingPrice",
-                        parseFloat(e.target.value) || 0,
-                      )
-                    }
-                    startIcon="₹"
-                    hasError={!!variantErrors[-1]?.sellingPrice}
-                    errorText={variantErrors[-1]?.sellingPrice}
-                    required
-                  />
-                </Grid>
-              </Grid>
-            </div>
+            {showNewVariantForm && (
+              <>
+                <div className="flex justify-between items-center mb-3">
+                  <p className="text-sm text-gray-600 font-medium">
+                    New Variant Details:
+                  </p>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setShowNewVariantForm(false);
+                      clearNewVariant();
+                    }}
+                    className="text-red-500 hover:bg-red-50"
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </div>
+                <div className="border p-4 rounded-md bg-gray-50">
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <CustomInput
+                        label="Size"
+                        placeholder="e.g., M"
+                        value={newVariant.size || ""}
+                        onChange={(e) =>
+                          updateNewVariant("size", e.target.value)
+                        }
+                        hasError={!!variantErrors[-1]?.size}
+                        errorText={variantErrors[-1]?.size}
+                        required
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <CustomInput
+                        label="Color"
+                        placeholder="e.g., Blue"
+                        value={newVariant.color || ""}
+                        onChange={(e) =>
+                          updateNewVariant("color", e.target.value)
+                        }
+                        hasError={!!variantErrors[-1]?.color}
+                        errorText={variantErrors[-1]?.color}
+                        required
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <CustomInput
+                        label="Barcode"
+                        placeholder="Enter barcode"
+                        value={newVariant.barcode || ""}
+                        onChange={(e) =>
+                          updateNewVariant("barcode", e.target.value)
+                        }
+                        hasError={!!variantErrors[-1]?.barcode}
+                        errorText={variantErrors[-1]?.barcode}
+                        endIcon={<QrCodeScannerIcon />}
+                        required
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <CustomInput
+                        label="SKU"
+                        placeholder="Optional"
+                        value={newVariant.sku || ""}
+                        onChange={(e) =>
+                          updateNewVariant("sku", e.target.value)
+                        }
+                        required
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <CustomInput
+                        label="Cost Price"
+                        type="number"
+                        placeholder="0"
+                        value={newVariant.costPrice || ""}
+                        onChange={(e) =>
+                          updateNewVariant(
+                            "costPrice",
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
+                        startIcon="₹"
+                        hasError={!!variantErrors[-1]?.costPrice}
+                        errorText={variantErrors[-1]?.costPrice}
+                        required
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <CustomInput
+                        label="MRP"
+                        type="number"
+                        placeholder="0"
+                        value={newVariant.mrp || ""}
+                        onChange={(e) =>
+                          updateNewVariant(
+                            "mrp",
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
+                        startIcon="₹"
+                        hasError={!!variantErrors[-1]?.mrp}
+                        errorText={variantErrors[-1]?.mrp}
+                        required
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <CustomInput
+                        label="Selling Price"
+                        type="number"
+                        placeholder="0"
+                        value={newVariant.sellingPrice || ""}
+                        onChange={(e) =>
+                          updateNewVariant(
+                            "sellingPrice",
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
+                        startIcon="₹"
+                        hasError={!!variantErrors[-1]?.sellingPrice}
+                        errorText={variantErrors[-1]?.sellingPrice}
+                        required
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12 }} className="flex gap-2 justify-end">
+                      <CustomButton
+                        variant="contained"
+                        size="small"
+                        onClick={addVariant}
+                      >
+                        OK
+                      </CustomButton>
+                    </Grid>
+                  </Grid>
+                </div>
+              </>
+            )}
 
             {/* Existing Variants List */}
             {variants.length > 0 && (
@@ -590,6 +713,7 @@ const AddProductPage = () => {
             </CustomButton>
             <CustomButton
               variant="contained"
+              type="submit"
               disabled={isSubmitting}
               endIcon={
                 isSubmitting ? (

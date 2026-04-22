@@ -1,116 +1,91 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import useForm from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useDispatch } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import { Alert, Grid } from "@mui/material";
 import { updateVendor, clearError } from "../../../slices/vendorsSlice";
 import { useVendors } from "../../../hooks/useVendors";
-import type { AddVendorForm, Vendor } from "../../../types/vendor";
+import {
+  updateVendorSchema,
+} from "../../../validation/vendors";
 import CustomInput from "../../../components/CustomInput";
 import CustomButton from "../../../components/CustomButton";
 import type { AppDispatch } from "../../../store";
-import { isValidEmail, isValidPhone } from "../../../utils/validation";
+import axios from "axios";
+import { API_BASE } from "../../../utils/auth";
 
 const EditVendorPage = () => {
   const { id } = useParams<{ id: string }>();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { vendors, error } = useVendors();
-  const [formData, setFormData] = useState<Partial<AddVendorForm>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { error: reduxError } = useVendors();
+  const form = useForm({
+    resolver: zodResolver(updateVendorSchema),
+  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors: formErrors, isSubmitting },
+    reset,
+  } = form;
 
-  const vendor = vendors.find((v: Vendor) => v.id === id);
-
-  // Prefill form
-  useEffect(() => {
-    if (vendor) {
-      setFormData({
-        name: vendor.name,
-        phone: vendor.phone,
-        email: vendor.email || "",
-        address: vendor.address || "",
-        gstin: vendor.gstin || "",
-        companyName: vendor.companyName || "",
-        city: vendor.city || "",
-        state: vendor.state || "",
-        country: vendor.country,
-      });
-    }
-  }, [vendor]);
+  const [apiError, setApiError] = useState("");
 
   // Clear redux error on mount
   useEffect(() => {
     dispatch(clearError());
   }, [dispatch]);
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    let valid = true;
-
-    if (!formData.name?.trim()) {
-      newErrors.name = "Name is required";
-      valid = false;
-    }
-    if (!isValidPhone(formData.phone)) {
-      newErrors.phone = "Valid phone is required";
-      valid = false;
-    }
-    if (formData.email && !isValidEmail(formData.email)) {
-      newErrors.email = "Invalid email";
-      valid = false;
-    }
-
-    setErrors(newErrors);
-    return valid;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id || !validateForm()) return;
-
-    const submitData: Partial<Vendor> = {
-      id: id,
-      name: formData.name!.trim(),
-      phone: formData.phone!.trim(),
-      email: formData.email?.trim() || undefined,
-      address: formData.address?.trim() || undefined,
-      gstin: formData.gstin?.trim() || undefined,
-      companyName: formData.companyName?.trim() || undefined,
-      city: formData.city?.trim() || undefined,
-      state: formData.state?.trim() || undefined,
-      country: formData.country || "India",
+  // Fetch vendor by ID and set form values
+  useEffect(() => {
+    if (!id) return;
+    const fetchVendor = async () => {
+      try {
+        const response = await axios.get(`/v1/vendors/${id}`, {
+          baseURL: API_BASE,
+        });
+        const vendorData = response.data.vendor;
+        reset({
+          name: vendorData.name,
+          phone: vendorData.phone,
+          email: vendorData.email || "",
+          address: vendorData.address || "",
+          gstin: vendorData.gstin || "",
+          companyName: vendorData.companyName,
+          city: vendorData.city || "",
+          state: vendorData.state || "",
+          country: vendorData.country || "India",
+        });
+        setApiError("");
+      } catch (err) {
+        setApiError(err.response?.data?.error || "Vendor not found");
+      }
     };
+    fetchVendor();
+  }, [id, reset]);
 
-    setIsSubmitting(true);
+  const onSubmit = async (data) => {
+    if (!id) return;
     try {
-      await dispatch(updateVendor(submitData as Vendor)).unwrap();
+      await dispatch(updateVendor({ id, ...data })).unwrap();
       navigate("/vendors");
     } catch (err) {
       console.error("Update vendor failed:", err);
-    } finally {
-      setIsSubmitting(false);
     }
   };
-
-  const handleChange = (field: keyof AddVendorForm, value: string) => {
-    setFormData({ ...formData, [field]: value });
-    if (errors[field]) {
-      setErrors({ ...errors, [field]: "" });
-    }
-  };
-
-  if (!vendor) {
-    return <div>Vendor not found</div>;
-  }
 
   return (
     <div className="flex flex-col m-2 w-full space-y-4 p-3 overflow-y-auto">
       <h1 className="text-3xl font-bold text-gray-800">Edit Vendor</h1>
       <div className="flex flex-col w-full bg-white space-y-6 p-6 rounded-md mx-auto">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert severity="error" onClose={() => dispatch(clearError())}>
-              {error}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {(reduxError || apiError) && (
+            <Alert severity="error" onClose={() => {
+              dispatch(clearError());
+              setApiError("");
+            }}>
+              {reduxError || apiError}
             </Alert>
           )}
 
@@ -126,83 +101,86 @@ const EditVendorPage = () => {
             <Grid container spacing={3}>
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <CustomInput
-                  label="Name *"
+                  {...register("name")}
+                  label="Name"
                   placeholder="Enter vendor name"
-                  value={formData.name || ""}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  hasError={!!errors.name}
-                  errorText={errors.name}
+                  hasError={!!formErrors.name}
+                  errorText={formErrors.name?.message as string}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <CustomInput
-                  label="Phone *"
+                  {...register("phone")}
+                  label="Phone"
                   placeholder="Enter phone number"
-                  value={formData.phone || ""}
-                  onChange={(e) => handleChange("phone", e.target.value)}
-                  hasError={!!errors.phone}
-                  errorText={errors.phone}
+                  hasError={!!formErrors.phone}
+                  errorText={formErrors.phone?.message as string}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <CustomInput
+                  {...register("email")}
                   label="Email"
                   type="email"
                   placeholder="Enter email (optional)"
-                  value={formData.email || ""}
-                  onChange={(e) => handleChange("email", e.target.value)}
-                  hasError={!!errors.email}
-                  errorText={errors.email}
+                  hasError={!!formErrors.email}
+                  errorText={formErrors.email?.message as string}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <CustomInput
-                  label="Company Name"
+                  {...register("companyName")}
+                  label="Company Name *"
                   placeholder="Enter company name"
-                  value={formData.companyName || ""}
-                  onChange={(e) => handleChange("companyName", e.target.value)}
+                  hasError={!!formErrors.companyName}
+                  errorText={formErrors.companyName?.message as string}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <CustomInput
+                  {...register("gstin")}
                   label="GSTIN"
                   placeholder="Enter GSTIN"
-                  value={formData.gstin || ""}
-                  onChange={(e) => handleChange("gstin", e.target.value)}
+                  hasError={!!formErrors.gstin}
+                  errorText={formErrors.gstin?.message as string}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <CustomInput
+                  {...register("city")}
                   label="City"
                   placeholder="Enter city"
-                  value={formData.city || ""}
-                  onChange={(e) => handleChange("city", e.target.value)}
+                  hasError={!!formErrors.city}
+                  errorText={formErrors.city?.message as string}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <CustomInput
+                  {...register("state")}
                   label="State"
                   placeholder="Enter state"
-                  value={formData.state || ""}
-                  onChange={(e) => handleChange("state", e.target.value)}
+                  hasError={!!formErrors.state}
+                  errorText={formErrors.state?.message as string}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <CustomInput
+                  {...register("country")}
                   label="Country"
                   placeholder="India"
-                  value={formData.country || "India"}
-                  onChange={(e) => handleChange("country", e.target.value)}
+                  hasError={!!formErrors.country}
+                  errorText={formErrors.country?.message as string}
                 />
               </Grid>
               <Grid size={{ xs: 12, lg: 6 }}>
                 <CustomInput
+                  {...register("address")}
                   label="Address"
                   placeholder="Enter full address"
-                  value={formData.address || ""}
-                  onChange={(e) => handleChange("address", e.target.value)}
                   multiline
                   rows={3}
+                  hasError={!!formErrors.address}
+                  errorText={formErrors.address?.message as string}
                 />
               </Grid>
             </Grid>
@@ -216,7 +194,12 @@ const EditVendorPage = () => {
             >
               Cancel
             </CustomButton>
-            <CustomButton variant="contained" disabled={isSubmitting}>
+
+            <CustomButton
+              type="submit"
+              variant="contained"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? "Updating..." : "Update Vendor"}
             </CustomButton>
           </div>

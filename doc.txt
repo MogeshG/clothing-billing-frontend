@@ -1,4 +1,4 @@
 Purchase flow
-PurchaseItem → Batch created → StockMovement(IN)
+PurchaseItem → Batch created with default values and set the status as PENDING → After user change details and make it active → StockMovement(IN)
 Sale flow
 InvoiceItem → StockMovement(OUT) → Batch deduction (FIFO)

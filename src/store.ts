@@ -10,6 +10,7 @@ import batchesReducer from "./slices/batchesSlice";
 import stockMovementsReducer from "./slices/stockMovementsSlice";
 import stockAdjustmentsReducer from "./slices/stockAdjustmentsSlice";
 import invoicesReducer from "./slices/invoicesSlice";
+import unitsReducer from "./slices/unitsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +25,7 @@ export const store = configureStore({
     stockMovements: stockMovementsReducer,
     stockAdjustments: stockAdjustmentsReducer,
     invoices: invoicesReducer,
+    units: unitsReducer,
   },
 });
 

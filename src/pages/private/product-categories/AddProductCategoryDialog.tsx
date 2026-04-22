@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -9,18 +9,25 @@ import {
 } from "@mui/material";
 import CustomButton from "../../../components/CustomButton";
 import CustomInput from "../../../components/CustomInput";
-import type { AddProductCategoryForm } from "../../../types/productCategory";
-import { useDispatch } from "react-redux";
-import { type AppDispatch } from "../../../store";
-import { addProductCategory } from "../../../slices/productCategoriesSlice";
+import {
+  createCategorySchema,
+  type CreateCategoryForm,
+} from "../../../validation/categories";
+import { useDispatch, useSelector } from "react-redux";
+import { type RootState, type AppDispatch } from "../../../store";
+import {
+  addProductCategory,
+  clearError,
+} from "../../../slices/productCategoriesSlice";
 
 interface AddProductCategoryDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
-const initialState: AddProductCategoryForm = {
+const initialState: CreateCategoryForm = {
   name: "",
+
   description: "",
 };
 
@@ -29,51 +36,62 @@ const AddProductCategoryDialog = ({
   onClose,
 }: AddProductCategoryDialogProps) => {
   const dispatch = useDispatch<AppDispatch>();
+  const { error } = useSelector((state: RootState) => state.productCategories);
 
-  const [formData, setFormData] =
-    useState<AddProductCategoryForm>(initialState);
+  const [formData, setFormData] = useState<CreateCategoryForm>(initialState);
+  const [errors, setErrors] = useState<Partial<CreateCategoryForm>>({});
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<AddProductCategoryForm>>({});
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setFormData(initialState);
+      setErrors({});
+      setSubmitError("");
+      dispatch(clearError());
+    }
+  }, [open, dispatch]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-
     setErrors((prev) => ({
       ...prev,
       [name]: "",
     }));
+    setSubmitError("");
   };
 
-  const validate = () => {
-    const newErrors: Partial<AddProductCategoryForm> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
+  const validate = (data: CreateCategoryForm) => {
+    const result = createCategorySchema.safeParse(data);
+    if (!result.success) {
+      const fieldErrors: Partial<CreateCategoryForm> = {};
+      result.error.issues.forEach((issue) => {
+        if (issue.path.length > 0) {
+          fieldErrors[issue.path[0] as keyof CreateCategoryForm] =
+            issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return false;
     }
-
-    setErrors(newErrors);
-
-    return Object.keys(newErrors).length === 0;
+    return true;
   };
 
   const handleAddProductCategory = async () => {
-    if (!validate()) return;
+    if (!validate(formData)) return;
 
     setLoading(true);
+    setSubmitError("");
 
     try {
       await dispatch(addProductCategory(formData)).unwrap();
-
-      setFormData(initialState);
-      setErrors({});
       onClose();
     } catch (err) {
-      console.error("Add product category failed", err);
+      setSubmitError((err as Error).message || "Failed to create category");
     } finally {
       setLoading(false);
     }
@@ -81,8 +99,6 @@ const AddProductCategoryDialog = ({
 
   const handleClose = () => {
     if (loading) return;
-    setFormData(initialState);
-    setErrors({});
     onClose();
   };
 
@@ -115,8 +131,16 @@ const AddProductCategoryDialog = ({
             className="w-100!"
             value={formData.description}
             onChange={handleInputChange}
+            hasError={!!errors.description}
+            errorText={errors.description}
+            fixedErrorSpace
           />
         </div>
+        {(error || submitError) && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-800 text-sm">{error || submitError}</p>
+          </div>
+        )}
       </DialogContent>
 
       <Divider />
@@ -126,7 +150,10 @@ const AddProductCategoryDialog = ({
           Cancel
         </Button>
 
-        <CustomButton onClick={handleAddProductCategory} disabled={loading}>
+        <CustomButton
+          onClick={handleAddProductCategory}
+          disabled={loading || !formData.name}
+        >
           {loading ? "Saving..." : "Add Category"}
         </CustomButton>
       </DialogActions>

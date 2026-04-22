@@ -13,6 +13,7 @@ import { DeleteOutlined } from "@mui/icons-material";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../../store";
 import { deleteCustomers } from "../../../slices/customersSlice";
+import { useCustomers } from "../../../hooks/useCustomers";
 
 interface DeleteCustomerDialogProps {
   open: boolean;
@@ -26,6 +27,7 @@ const DeleteCustomerDialog = ({
   customerId,
 }: DeleteCustomerDialogProps) => {
   const dispatch = useDispatch<AppDispatch>();
+  const {refetch} = useCustomers();
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
@@ -35,7 +37,7 @@ const DeleteCustomerDialog = ({
       setLoading(true);
 
       await dispatch(deleteCustomers([customerId])).unwrap();
-
+      refetch();
       onClose();
     } catch (err) {
       console.error("Delete customer failed", err);

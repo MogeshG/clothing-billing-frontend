@@ -9,14 +9,18 @@ import {
 } from "@mui/material";
 import CustomButton from "../../../components/CustomButton";
 import CustomInput from "../../../components/CustomInput";
-import type {
-  AddProductCategoryForm,
-  ProductCategory,
-} from "../../../types/productCategory";
-import { useDispatch } from "react-redux";
-import { type AppDispatch } from "../../../store";
-import { updateProductCategory } from "../../../slices/productCategoriesSlice";
+import {
+  updateCategorySchema,
+  type UpdateCategoryForm,
+} from "../../../validation/categories";
+import { useDispatch, useSelector } from "react-redux";
+import { type RootState, type AppDispatch } from "../../../store";
+import {
+  updateProductCategory,
+  clearError,
+} from "../../../slices/productCategoriesSlice";
 import { useProductCategories } from "../../../hooks/useProductCategories";
+import type { ProductCategory } from "../../../types/productCategory";
 
 interface EditProductCategoryDialogProps {
   open: boolean;
@@ -24,7 +28,7 @@ interface EditProductCategoryDialogProps {
   onClose: () => void;
 }
 
-const initialState: AddProductCategoryForm = {
+const initialState: UpdateCategoryForm = {
   name: "",
   description: "",
 };
@@ -35,76 +39,79 @@ const EditProductCategoryDialog = ({
   onClose,
 }: EditProductCategoryDialogProps) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { productCategories } = useProductCategories();
+  const { productCategories, error } = useSelector(
+    (state: RootState) => state.productCategories,
+  );
+  const { refetch } = useProductCategories();
 
-  const [formData, setFormData] =
-    useState<AddProductCategoryForm>(initialState);
+  const [formData, setFormData] = useState<UpdateCategoryForm>(initialState);
+  const [errors, setErrors] = useState<Partial<UpdateCategoryForm>>({});
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<AddProductCategoryForm>>({});
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
-    if (!categoryId) return;
+    if (!categoryId || !open) return;
 
-    const category = productCategories.find(
-      (c: ProductCategory) => c.id === categoryId,
-    );
-
+    const category = productCategories.find((c) => c.id === categoryId);
     if (category) {
       setFormData({
         name: category.name || "",
         description: category.description || "",
       });
+      setErrors({});
+      setSubmitError("");
+      dispatch(clearError());
     }
-  }, [categoryId, productCategories]);
+  }, [categoryId, productCategories, open, dispatch]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-
     setErrors((prev) => ({
       ...prev,
       [name]: "",
     }));
+    setSubmitError("");
   };
 
-  const validate = () => {
-    const newErrors: Partial<AddProductCategoryForm> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
+  const validate = (data: UpdateCategoryForm) => {
+    const result = updateCategorySchema.safeParse(data);
+    if (!result.success) {
+      const fieldErrors: Partial<UpdateCategoryForm> = {};
+      result.error.issues.forEach((issue) => {
+        if (issue.path.length > 0) {
+          fieldErrors[issue.path[0] as keyof UpdateCategoryForm] =
+            issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return false;
     }
-
-    setErrors(newErrors);
-
-    return Object.keys(newErrors).length === 0;
+    return true;
   };
 
   const handleUpdateProductCategory = async () => {
     if (!categoryId) return;
-    if (!validate()) return;
+    if (!validate(formData)) return;
 
-    const updatedCategory: Partial<ProductCategory> = {
+    const updatedCategory: Partial<ProductCategory> & { id: string } = {
       id: categoryId,
       name: formData.name.trim(),
       description: formData.description?.trim() || undefined,
     };
 
+    setLoading(true);
+    setSubmitError("");
+
     try {
-      setLoading(true);
-
-      await dispatch(
-        updateProductCategory(updatedCategory as ProductCategory),
-      ).unwrap();
-
+      await dispatch(updateProductCategory(updatedCategory)).unwrap();
+      refetch();
       onClose();
-      setFormData(initialState);
-      setErrors({});
     } catch (err) {
-      console.error("Update product category failed", err);
+      setSubmitError((err as Error).message || "Failed to update category");
     } finally {
       setLoading(false);
     }
@@ -112,9 +119,6 @@ const EditProductCategoryDialog = ({
 
   const handleClose = () => {
     if (loading) return;
-
-    setFormData(initialState);
-    setErrors({});
     onClose();
   };
 
@@ -129,7 +133,7 @@ const EditProductCategoryDialog = ({
       <DialogContent>
         <div className="space-y-3 mt-2">
           <CustomInput
-            label="Name *"
+            label="Name"
             name="name"
             className="w-80!"
             value={formData.name}
@@ -147,8 +151,16 @@ const EditProductCategoryDialog = ({
             className="w-100!"
             value={formData.description}
             onChange={handleInputChange}
+            hasError={!!errors.description}
+            errorText={errors.description}
+            fixedErrorSpace
           />
         </div>
+        {(error || submitError) && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-800 text-sm">{error || submitError}</p>
+          </div>
+        )}
       </DialogContent>
 
       <Divider />

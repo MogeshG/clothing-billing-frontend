@@ -103,8 +103,7 @@ const POSPage = () => {
     // Recalc total
     // Safe recalc total
     const subtotal = newItem.price * newItem.quantity - newItem.discount;
-    const taxRate =
-      (newItem.cgstPercent + newItem.sgstPercent + newItem.igstPercent) / 100;
+    const taxRate = (newItem.cgstPercent + newItem.sgstPercent) / 100;
     newItem.total = isFinite(subtotal) ? subtotal * (1 + taxRate) : 0;
 
     setItems((prevItems) => {
@@ -315,8 +314,7 @@ const POSPage = () => {
         const newItems = [...prevItems];
         const item = { ...newItems[index], [field]: value as any };
         const subtotal = item.price * item.quantity - item.discount;
-        const taxRate =
-          (item.cgstPercent + item.sgstPercent + item.igstPercent) / 100;
+        const taxRate = (item.cgstPercent + item.sgstPercent) / 100;
         item.total = isFinite(subtotal) ? subtotal * (1 + taxRate) : 0;
         newItems[index] = item;
         return newItems;

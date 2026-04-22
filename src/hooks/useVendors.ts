@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
 import { fetchVendors } from "../slices/vendorsSlice";
@@ -9,9 +9,16 @@ export const useVendors = () => {
     (state: RootState) => state.vendors,
   );
 
+  const fetchWithParams = useCallback(
+    (params: Parameters<typeof fetchVendors>[0] = {}) => {
+      dispatch(fetchVendors(params));
+    },
+    [dispatch],
+  );
+
   useEffect(() => {
-    dispatch(fetchVendors());
-  }, [dispatch]);
+    fetchWithParams();
+  }, [fetchWithParams]);
 
   return {
     vendors,

@@ -26,10 +26,12 @@ export interface PurchaseItem {
   color?: string;
   hsnCode: string;
   quantity: number;
-  price: number;
-  cgstPercent: number;
-  sgstPercent: number;
-  igstPercent: number;
+  costPrice: number;
+  cgstPercent?: number;
+  sgstPercent?: number;
+  igstPercent?: number;
+  mrp?: number;
+  sellingPrice?: number;
   total: number;
   createdAt: string;
 }
@@ -39,6 +41,7 @@ export interface AddPurchaseForm {
   vendorName?: string;
   vendorPhone?: string;
   vendorGstin?: string;
+  discount?: number;
   purchaseDate: string;
   items: Array<{
     itemName: string;
@@ -48,22 +51,39 @@ export interface AddPurchaseForm {
     color?: string;
     hsnCode: string;
     quantity: number;
-    price: number;
-    cgstPercent: number;
-    sgstPercent: number;
-    igstPercent: number;
+    cgstPercent?: number;
+    sgstPercent?: number;
+    igstPercent?: number;
+    mrp?: number;
+    sellingPrice?: number;
+    costPrice: number;
+    taxInclusive?: boolean;
   }>;
 }
 
-export interface UpdatePurchaseForm {
-  purchaseNo?: string;
+export interface UpdatePurchaseForm extends AddPurchaseForm {
+  id: string;
   status?: "DRAFT" | "COMPLETED" | "CANCELLED";
-  vendorName?: string;
-  vendorPhone?: string;
-  vendorGstin?: string;
-  subTotal?: number;
-  discount?: number;
-  taxAmount?: number;
-  totalAmount?: number;
-  purchaseDate?: string;
 }
+
+export type ItemForm = {
+  itemName: string;
+  itemType: "RAW" | "FINISHED";
+  hsnCode: string;
+  quantity: number;
+  costPrice: number;
+  cgstPercent: number;
+  sgstPercent: number;
+  igstPercent: number;
+  total: number;
+  sku?: string;
+  size?: string;
+  color?: string;
+  productVariantId?: string;
+  unitId: string;
+  unitName: string;
+  unitSymbol: string;
+  taxInclusive?: boolean;
+  mrp?: number;
+  sellingPrice?: number;
+};

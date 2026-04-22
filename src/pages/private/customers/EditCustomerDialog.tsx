@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogTitle,
@@ -7,14 +9,17 @@ import {
   Button,
   Divider,
 } from "@mui/material";
+import { useDispatch, useSelector } from "react-redux";
+import { type AppDispatch, type RootState } from "../../../store";
+import { updateCustomer } from "../../../slices/customersSlice";
 import CustomButton from "../../../components/CustomButton";
 import CustomInput from "../../../components/CustomInput";
-import type { AddCustomerForm, Customer } from "../../../types/customer";
-import { useDispatch } from "react-redux";
-import { type AppDispatch } from "../../../store";
-import { updateCustomer } from "../../../slices/customersSlice";
+import {
+  updateCustomerSchema,
+  type UpdateCustomerForm,
+} from "../../../validation/customers";
+import type { Customer } from "../../../types/customer";
 import { useCustomers } from "../../../hooks/useCustomers";
-import { isValidEmail, isValidPhone } from "../../../utils/validation";
 
 interface EditCustomerDialogProps {
   open: boolean;
@@ -22,174 +27,130 @@ interface EditCustomerDialogProps {
   onClose: () => void;
 }
 
-const initialState: AddCustomerForm = {
-  name: "",
-  phone: "",
-  email: "",
-  address: "",
-};
-
 const EditCustomerDialog = ({
   open,
   customerId,
   onClose,
 }: EditCustomerDialogProps) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { customers } = useCustomers();
+  const { refetch } = useCustomers();
+  const customers = useSelector(
+    (state: RootState) => state.customers.customers,
+  );
 
-  const [formData, setFormData] = useState<AddCustomerForm>(initialState);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<AddCustomerForm>>({});
+  const customer = React.useMemo(
+    () => customers.find((c) => c.id === customerId) || null,
+    [customers, customerId],
+  );
 
-  useEffect(() => {
-    if (!customerId) return;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<UpdateCustomerForm>({
+    resolver: zodResolver(updateCustomerSchema),
+  });
 
-    const customer = customers.find((c: Customer) => c.id === customerId);
-
-    if (customer) {
-      setFormData({
-        name: customer.name || "",
-        phone: customer.phone || "",
+  React.useEffect(() => {
+    if (open && customer) {
+      reset({
+        name: customer.name,
+        phone: customer.phone,
         email: customer.email || "",
         address: customer.address || "",
       });
+    } else if (!open) {
+      reset();
     }
-  }, [customerId, customers]);
+  }, [customer, open, reset]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      [name]: "",
-    }));
-  };
-
-  const validate = () => {
-    const newErrors: Partial<AddCustomerForm> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
-    }
-
-    if (!isValidPhone(formData.phone)) {
-      newErrors.phone = "Enter a valid phone number";
-    }
-
-    if (formData.email && !isValidEmail(formData.email)) {
-      newErrors.email = "Enter a valid email address";
-    }
-
-    setErrors(newErrors);
-
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleUpdateCustomer = async () => {
+  const onSubmit = async (data: UpdateCustomerForm) => {
     if (!customerId) return;
-    if (!validate()) return;
 
-    const updatedCustomer: Partial<Customer> = {
+    const updateData = {
+      ...data,
       id: customerId,
-      name: formData.name.trim(),
-      phone: formData.phone.trim(),
-      email: formData.email?.trim() || undefined,
-      address: formData.address?.trim() || undefined,
     };
 
     try {
-      setLoading(true);
-
-      await dispatch(updateCustomer(updatedCustomer as Customer)).unwrap();
-
+      await dispatch(updateCustomer(updateData as Customer)).unwrap();
       onClose();
-      setFormData(initialState);
-      setErrors({});
-    } catch (err) {
-      console.error("Update customer failed", err);
-    } finally {
-      setLoading(false);
+      refetch();
+    } catch (error) {
+      console.error("Update customer failed", error);
     }
   };
 
   const handleClose = () => {
-    if (loading) return;
-
-    setFormData(initialState);
-    setErrors({});
+    if (isSubmitting) return;
+    reset();
     onClose();
   };
 
+  if (!customer || !open) return null;
+
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm">
-      <DialogTitle className="text-lg font-semibold">Edit Customer</DialogTitle>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <DialogTitle className="text-lg font-semibold">
+          Edit Customer
+        </DialogTitle>
 
-      <Divider />
+        <Divider />
 
-      <DialogContent>
-        <div className="space-y-3 mt-2">
-          <CustomInput
-            label="Name *"
-            name="name"
-            className="w-80!"
-            value={formData.name}
-            onChange={handleInputChange}
-            hasError={!!errors.name}
-            errorText={errors.name}
-            fixedErrorSpace
-          />
+        <DialogContent>
+          <div className="space-y-4 mt-2">
+            <CustomInput
+              label="Name *"
+              {...register("name")}
+              className="w-80!"
+              hasError={!!errors.name}
+              errorText={errors.name?.message}
+              fixedErrorSpace
+            />
 
-          <CustomInput
-            label="Phone *"
-            name="phone"
-            className="w-80!"
-            value={formData.phone}
-            onChange={handleInputChange}
-            hasError={!!errors.phone}
-            errorText={errors.phone}
-            fixedErrorSpace
-          />
+            <CustomInput
+              label="Phone *"
+              {...register("phone")}
+              className="w-80!"
+              hasError={!!errors.phone}
+              errorText={errors.phone?.message}
+              fixedErrorSpace
+            />
 
-          <CustomInput
-            label="Email"
-            name="email"
-            type="email"
-            className="w-80!"
-            value={formData.email}
-            onChange={handleInputChange}
-            hasError={!!errors.email}
-            errorText={errors.email}
-            fixedErrorSpace
-          />
+            <CustomInput
+              label="Email"
+              type="email"
+              {...register("email")}
+              className="w-80!"
+              hasError={!!errors.email}
+              errorText={errors.email?.message}
+              fixedErrorSpace
+            />
 
-          <CustomInput
-            label="Address"
-            name="address"
-            multiline
-            rows={4}
-            className="w-100!"
-            value={formData.address}
-            onChange={handleInputChange}
-          />
-        </div>
-      </DialogContent>
+            <CustomInput
+              label="Address"
+              multiline
+              rows={4}
+              className="w-full"
+              {...register("address")}
+            />
+          </div>
+        </DialogContent>
 
-      <Divider />
+        <Divider />
 
-      <DialogActions className="px-6 py-4">
-        <Button onClick={handleClose} disabled={loading}>
-          Cancel
-        </Button>
+        <DialogActions className="px-6 py-4">
+          <Button onClick={handleClose} disabled={isSubmitting} type="button">
+            Cancel
+          </Button>
 
-        <CustomButton onClick={handleUpdateCustomer} disabled={loading}>
-          {loading ? "Updating..." : "Update Customer"}
-        </CustomButton>
-      </DialogActions>
+          <CustomButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Updating..." : "Update Customer"}
+          </CustomButton>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 };

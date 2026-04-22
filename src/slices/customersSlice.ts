@@ -2,6 +2,8 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 import type { Customer } from "../types/customer";
+import axios from "axios";
+import { API_BASE } from "../utils/auth";
 
 interface CustomersState {
   customers: Customer[];
@@ -17,170 +19,90 @@ const initialState: CustomersState = {
   selectedCustomers: [],
 };
 
-// Mock data
-const mockCustomers: Customer[] = [
-  {
-    id: "1",
-    name: "John Doe",
-    phone: "1234567890",
-    email: "john@example.com",
-    address: "123 Main St",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    phone: "0987654321",
-    email: "jane@example.com",
-    address: "456 Oak Ave",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  // Add more mock data...
-  {
-    id: "3",
-    name: "Bob Johnson",
-    phone: "1122334455",
-    email: undefined,
-    address: undefined,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "4",
-    name: "Alice Brown",
-    phone: "5566778899",
-    email: "alice@example.com",
-    address: "789 Pine Rd",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "5",
-    name: "Charlie Wilson",
-    phone: "0011223344",
-    email: undefined,
-    address: "101 Elm St",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "7",
-    name: "Charlie Wilson",
-    phone: "0011223344",
-    email: undefined,
-    address: "101 Elm St",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "6",
-    name: "Charlie Wilson",
-    phone: "0011223344",
-    email: undefined,
-    address: "101 Elm St",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "9",
-    name: "Charlie Wilson",
-    phone: "0011223344",
-    email: undefined,
-    address: "101 Elm St",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "8",
-    name: "Charlie Wilson",
-    phone: "0011223344",
-    email: undefined,
-    address: "101 Elm St",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
 // Thunks
 export const fetchCustomers = createAsyncThunk(
   "customers/fetchCustomers",
   async () => {
-    return new Promise<Customer[]>((resolve) => {
-      setTimeout(() => resolve(mockCustomers), 500);
-    });
+    const response = await axios.get("/v1/customers", { baseURL: API_BASE });
+    return response.data as Customer[];
   },
 );
 
 export const addCustomer = createAsyncThunk(
   "customers/addCustomer",
-  async (customer: Omit<Customer, "id" | "createdAt" | "updatedAt">) => {
-    return new Promise<Customer>((resolve) => {
-      setTimeout(() => {
-        const newCustomer: Customer = {
-          id: Math.random().toString(36).substr(2, 9),
-          ...customer,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        mockCustomers.push(newCustomer);
-        resolve(newCustomer);
-      }, 500);
-    });
+  async (
+    customer: Omit<Customer, "id" | "createdAt" | "updatedAt">,
+    { rejectWithValue },
+  ) => {
+    try {
+      await axios.post("/v1/customers", customer, {
+        baseURL: API_BASE,
+      });
+      const response = await axios.get("/v1/customers", { baseURL: API_BASE });
+      return response.data as Customer[];
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to add customer",
+      );
+    }
   },
 );
 
 export const updateCustomer = createAsyncThunk(
   "customers/updateCustomer",
-  async (customer: Customer) => {
-    return new Promise<Customer>((resolve) => {
-      setTimeout(() => {
-        const index = mockCustomers.findIndex((c) => c.id === customer.id);
-        if (index !== -1) {
-          mockCustomers[index] = {
-            ...customer,
-            updatedAt: new Date().toISOString(),
-          };
-        }
-        resolve(customer);
-      }, 500);
-    });
+  async (customer: Customer, { rejectWithValue }) => {
+    try {
+      await axios.put(`/v1/customers/${customer.id}`, customer, {
+        baseURL: API_BASE,
+      });
+      const response = await axios.get("/v1/customers", { baseURL: API_BASE });
+      return response.data as Customer[];
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to update customer",
+      );
+    }
   },
 );
 
 export const deleteCustomers = createAsyncThunk(
   "customers/deleteCustomers",
-  async (ids: string[]) => {
-    return new Promise<string[]>((resolve) => {
-      setTimeout(() => {
-        for (const id of ids) {
-          const index = mockCustomers.findIndex((c) => c.id === id);
-          if (index !== -1) {
-            mockCustomers.splice(index, 1);
-          }
-        }
-        resolve(ids);
-      }, 500);
-    });
+  async (ids: string[], { rejectWithValue }) => {
+    try {
+      const promises = ids.map((id) =>
+        axios.delete(`/v1/customers/${id}`, { baseURL: API_BASE }),
+      );
+      await Promise.all(promises);
+      return ids;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to delete customers",
+      );
+    }
   },
 );
 
 export const bulkCreateCustomers = createAsyncThunk(
   "customers/bulkCreateCustomers",
-  async (customers: Omit<Customer, "id" | "createdAt" | "updatedAt">[]) => {
-    return new Promise<Customer[]>((resolve) => {
-      setTimeout(() => {
-        const newCustomers = customers.map((customer) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          ...customer,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }));
-        mockCustomers.push(...newCustomers);
-        resolve(newCustomers);
-      }, 500);
-    });
+  async (
+    customers: Omit<Customer, "id" | "createdAt" | "updatedAt">[],
+    { rejectWithValue },
+  ) => {
+    try {
+      // const newCustomers = await Promise.all(
+      //   customers.map((c) =>
+      //     axios
+      //       .post("/v1/customers", c, { baseURL: API_BASE })
+      //       .then((res) => res.data as Customer),
+      //   ),
+      // );
+      const response = await axios.get("/v1/customers", { baseURL: API_BASE });
+      return response.data as Customer[];
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to bulk create customers",
+      );
+    }
   },
 );
 
@@ -207,20 +129,50 @@ const customersSlice = createSlice({
       })
       .addCase(fetchCustomers.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || "Failed to fetch customers";
+        state.error =
+          (action.payload as string) ||
+          action.error.message ||
+          "Failed to fetch customers";
+      })
+      .addCase(addCustomer.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
       .addCase(addCustomer.fulfilled, (state, action) => {
-        state.customers.push(action.payload);
+        state.customers = action.payload;
         state.loading = false;
       })
-      .addCase(updateCustomer.fulfilled, (state, action) => {
-        const index = state.customers.findIndex(
-          (c) => c.id === action.payload.id,
-        );
-        if (index !== -1) {
-          state.customers[index] = action.payload;
-        }
+      .addCase(addCustomer.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(bulkCreateCustomers.fulfilled, (state, action) => {
+        state.customers = action.payload;
+        state.loading = false;
+      })
+      .addCase(bulkCreateCustomers.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(bulkCreateCustomers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to bulk create customers";
+      })
+      .addCase(updateCustomer.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateCustomer.fulfilled, (state, action) => {
+        state.customers = action.payload;
+        state.loading = false;
+      })
+      .addCase(updateCustomer.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(deleteCustomers.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
       .addCase(deleteCustomers.fulfilled, (state, action) => {
         state.customers = state.customers.filter(
@@ -228,6 +180,10 @@ const customersSlice = createSlice({
         );
         state.selectedCustomers = [];
         state.loading = false;
+      })
+      .addCase(deleteCustomers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });

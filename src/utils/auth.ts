@@ -1,7 +1,3 @@
-import axios from "axios";
-
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001"; // Adjust as needed
-
 export const getToken = (): string | null => {
   return localStorage.getItem("token");
 };
@@ -13,6 +9,9 @@ export const setToken = (token: string): void => {
 export const removeToken = (): void => {
   localStorage.removeItem("token");
 };
+
+export const API_BASE =
+  import.meta.env.VITE_API_BASE || "http://localhost:3000/api";
 
 export const verifyToken = async (): Promise<boolean> => {
   // JWT auth disabled - always return true

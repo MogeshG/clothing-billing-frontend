@@ -84,13 +84,14 @@ export default function CustomSelect({
           <InputLabel id="custom-select-label">{label}</InputLabel>
         )}
 
-        <Select          
+        <Select
           multiple={multiple}
           value={value}
           onChange={(val) => onChange(val)}
           labelId={!labelInside ? "custom-select-label" : undefined}
           // label={label ? label : undefined}
           displayEmpty
+          required={required}
           className={clsx("transition-all", selectClassName)}
           {...rest}
           startAdornment={

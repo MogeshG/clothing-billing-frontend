@@ -5,8 +5,18 @@ import type {
   MRT_ColumnFiltersState,
 } from "material-react-table";
 import { useDispatch } from "react-redux";
-import { Alert, IconButton } from "@mui/material";
+import {
+  Alert,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { clearError } from "../../../slices/purchasesSlice";
 import { usePurchases } from "../../../hooks/usePurchases";
 import type { Purchase } from "../../../types/purchase";
@@ -38,6 +48,25 @@ const Purchases = () => {
     left: ["mrt-row-select", "purchaseNo", "status"],
     right: ["mrt-row-actions"],
   });
+
+  const { deletePurchase } = usePurchases();
+
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    id: string;
+  }>({
+    open: false,
+    id: "",
+  });
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await deletePurchase(deleteDialog.id);
+      setDeleteDialog({ open: false, id: "" });
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
 
   const columns = useMemo<MRT_ColumnDef<Purchase>[]>(
     () => [
@@ -164,26 +193,70 @@ const Purchases = () => {
               <RemoveRedEye fontSize="small" />
             </IconButton>
             {row.original.status === "DRAFT" && (
-              <IconButton
-                size="small"
-                onClick={() => {
-                  navigate(`/purchases/update-purchase/${row.original.id}`);
-                }}
-                sx={{
-                  border: "1px solid",
-                  borderColor: "primary.main",
-                  color: "primary.main",
-                  borderRadius: 1,
-                  width: 36,
-                  height: 36,
-                }}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
+              <>
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    navigate(`/purchases/update-purchase/${row.original.id}`);
+                  }}
+                  sx={{
+                    border: "1px solid",
+                    borderColor: "primary.main",
+                    color: "primary.main",
+                    borderRadius: 1,
+                    width: 36,
+                    height: 36,
+                  }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() =>
+                    setDeleteDialog({ open: true, id: row.original.id })
+                  }
+                  sx={{
+                    border: "1px solid",
+                    borderColor: "error.main",
+                    color: "error.main",
+                    borderRadius: 1,
+                    width: 36,
+                    height: 36,
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </>
             )}
           </div>
         )}
       />
+
+      {/* Delete Confirm Dialog */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, id: "" })}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this draft purchase? This cannot be
+            undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, id: "" })}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

@@ -5,10 +5,16 @@ export type Product = {
   hsnCode: string;
   description?: string | null;
   categoryId: string;
+  category: {
+    id: string;
+    name: string;
+  };
   categoryName: string;
   brand?: string | null;
 
-  gstPercent: number;
+  cgstPercent: number;
+  sgstPercent: number;
+  igstPercent: number;
   taxInclusive: boolean;
 
   isActive: boolean;
@@ -49,7 +55,9 @@ export type AddProductForm = {
   description?: string | null;
   categoryId: string;
   brand?: string | null;
-  gstPercent: number;
+  cgstPercent: number;
+  sgstPercent: number;
+  igstPercent: number;
   taxInclusive: boolean;
   variants: ProductVariantInput[];
 };

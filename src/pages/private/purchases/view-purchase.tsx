@@ -1,28 +1,19 @@
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
 import { Grid, Chip, Card, CardContent } from "@mui/material";
-import type { RootState } from "../../../store";
+import { usePurchaseDetail } from "../../../hooks/usePurchases";
 import type { Purchase, PurchaseItem } from "../../../types/purchase";
 import CustomButton from "../../../components/CustomButton";
 import { CustomTable } from "../../../components/CustomTable";
 import type { MRT_ColumnDef } from "material-react-table";
 import { RemoveRedEye } from "@mui/icons-material";
+import formatRupee from "../../../utils/formatRupee";
+import Loader from "../../../components/CustomLoader";
 
 const ViewPurchasePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const purchase = useSelector((state: RootState) =>
-    state.purchases.purchases.find((p: Purchase) => p.id === id),
-  ) as Purchase | undefined;
-
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading since purchases are pre-fetched
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  const { purchase, loading, error, refetch } = usePurchaseDetail(id || "");
 
   const itemsColumns = useMemo<MRT_ColumnDef<PurchaseItem>[]>(
     () => [
@@ -66,7 +57,7 @@ const ViewPurchasePage = () => {
         size: 80,
       },
       {
-        accessorKey: "price",
+        accessorKey: "costPrice",
         header: "Price",
         Cell: ({ renderedCellValue }) =>
           `₹${Number(renderedCellValue).toLocaleString()}`,
@@ -99,21 +90,27 @@ const ViewPurchasePage = () => {
   );
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-100">
-        <div className="text-lg">Loading purchase details...</div>
-      </div>
-    );
+    return <Loader />;
   }
 
-  if (!purchase) {
+  if (error || !purchase) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-100 space-y-4">
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
         <RemoveRedEye className="text-6xl text-gray-400" />
-        <div className="text-xl text-gray-600">Purchase not found</div>
-        <CustomButton variant="outlined" onClick={() => navigate("/purchases")}>
-          Back to Purchases
-        </CustomButton>
+        <div className="text-xl text-gray-600">
+          {error || "Purchase not found"}
+        </div>
+        <div className="flex gap-2">
+          <CustomButton variant="outlined" onClick={refetch}>
+            Retry
+          </CustomButton>
+          <CustomButton
+            variant="outlined"
+            onClick={() => navigate("/purchases")}
+          >
+            Back to Purchases
+          </CustomButton>
+        </div>
       </div>
     );
   }
@@ -130,9 +127,6 @@ const ViewPurchasePage = () => {
         return "default";
     }
   };
-
-  const formatCurrency = (amount: number) =>
-    `₹${Number(amount).toLocaleString()}`;
 
   return (
     <div className="flex flex-col m-2 w-full space-y-4 p-3 overflow-y-auto">
@@ -241,25 +235,25 @@ const ViewPurchasePage = () => {
               <div className="flex flex-col">
                 <span className="text-gray-600">Sub Total</span>
                 <span className="text-xl font-bold text-gray-900">
-                  {formatCurrency(purchase.subTotal)}
+                  {formatRupee(parseInt(purchase.subTotal))}
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="text-gray-600">Discount</span>
                 <span className="text-xl font-semibold text-green-600">
-                  -{formatCurrency(purchase.discount)}
+                  -{formatRupee(parseInt(purchase.discount))}
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="text-gray-600">Tax Amount</span>
                 <span className="text-xl font-semibold">
-                  {formatCurrency(purchase.taxAmount)}
+                  {formatRupee(parseInt(purchase.taxAmount))}
                 </span>
               </div>
               <div className="flex flex-col border-l border-gray-200 pl-6">
                 <span className="text-gray-600">Grand Total</span>
                 <span className="text-3xl font-bold text-gray-900">
-                  {formatCurrency(purchase.totalAmount)}
+                  {formatRupee(parseInt(purchase.totalAmount))}
                 </span>
               </div>
             </div>

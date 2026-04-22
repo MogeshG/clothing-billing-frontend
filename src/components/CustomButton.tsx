@@ -9,6 +9,7 @@ interface CustomButtonProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
   startIcon?: ReactNode;
+  type?: "button" | "submit" | "reset";
   endIcon?: ReactNode;
   loading?: boolean;
   disabled?: boolean;
@@ -24,6 +25,7 @@ const CustomButton = ({
   size = "medium",
   startIcon,
   endIcon,
+  type = "button",
   loading = false,
   disabled = false,
   fullWidth = false,
@@ -43,6 +45,7 @@ const CustomButton = ({
     <Button
       variant={variant}
       size={size}
+      type={type}
       fullWidth={fullWidth}
       disabled={isDisabled}
       onClick={handleClick}
