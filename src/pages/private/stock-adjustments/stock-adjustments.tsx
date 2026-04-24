@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import type { MRT_ColumnDef } from "material-react-table";
@@ -14,7 +14,11 @@ import { Alert } from "@mui/material";
 const StockAdjustmentsPage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { adjustments, loading, error } = useStockAdjustments();
+  const { adjustments, loading, error, refetchAdjustments } = useStockAdjustments();
+
+  useEffect(() => {
+    refetchAdjustments();
+  }, [refetchAdjustments]);
 
   const columns = React.useMemo<MRT_ColumnDef<StockAdjustment>[]>(
     () => [
@@ -29,6 +33,11 @@ const StockAdjustmentsPage = () => {
         accessorKey: "productName",
         header: "Product",
         size: 200,
+      },
+      {
+        accessorKey: "variantSku",
+        header: "SKU",
+        size: 120,
       },
       {
         accessorKey: "batchNo",

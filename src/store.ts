@@ -11,6 +11,7 @@ import stockMovementsReducer from "./slices/stockMovementsSlice";
 import stockAdjustmentsReducer from "./slices/stockAdjustmentsSlice";
 import invoicesReducer from "./slices/invoicesSlice";
 import unitsReducer from "./slices/unitsSlice";
+import preferencesReducer from "./slices/preferenceSlice";
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ export const store = configureStore({
     stockAdjustments: stockAdjustmentsReducer,
     invoices: invoicesReducer,
     units: unitsReducer,
+    preferences: preferencesReducer,
   },
 });
 

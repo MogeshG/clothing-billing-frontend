@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
-import { Autocomplete, TextField, Paper } from "@mui/material";
+import { useState, useEffect } from "react";
+import { Autocomplete, TextField } from "@mui/material";
 import { type SvgIconComponent } from "@mui/icons-material";
 
 export interface ActionOption {
@@ -46,6 +46,13 @@ export default function CustomSearch<T>({
 }: CustomSearchProps<T>) {
   const [internalInput, setInternalInput] = useState("");
 
+  // Sync internal input with value when it's cleared
+  useEffect(() => {
+    if (!value) {
+      setInternalInput("");
+    }
+  }, [value]);
+
   const inputValue =
     controlledInput !== undefined ? controlledInput : internalInput;
 
@@ -54,6 +61,7 @@ export default function CustomSearch<T>({
   return (
     <Autocomplete
       freeSolo
+      openOnFocus
       options={data}
       value={value}
       inputValue={inputValue}
@@ -80,7 +88,7 @@ export default function CustomSearch<T>({
             .includes(params.inputValue.toLowerCase()),
         );
 
-        if (action && params.inputValue !== "") {
+        if (action) {
           filtered.push({
             __action: action,
             label: action.label,
@@ -92,7 +100,7 @@ export default function CustomSearch<T>({
       renderOption={(props, option: any) => {
         if (option.__action) {
           return (
-            <li {...props} className="text-blue-600">
+            <li {...props} className="text-blue-600 py-2 px-4 cursor-pointer">
               {option.__action.icon && (
                 <option.__action.icon fontSize="small" />
               )}
@@ -112,10 +120,6 @@ export default function CustomSearch<T>({
           error={hasError}
           helperText={errorText}
           required={required}
-          InputProps={{
-            ...params.InputProps,
-            className: "h-12",
-          }}
           slotProps={{
             ...params.slotProps,
             inputLabel: {
@@ -124,9 +128,6 @@ export default function CustomSearch<T>({
             },
           }}
         />
-      )}
-      PaperComponent={(props) => (
-        <Paper {...props} className="shadow-md rounded-md" />
       )}
     />
   );

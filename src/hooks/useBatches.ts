@@ -5,7 +5,7 @@ import { fetchBatches, clearError } from "../slices/batchesSlice";
 
 export const useBatches = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { batches, loading, error } = useSelector(
+  const { batches, activeBatches, loading, error } = useSelector(
     (state: RootState) => state.batches,
   );
 
@@ -15,6 +15,7 @@ export const useBatches = () => {
 
   return {
     batches,
+    activeBatches,
     loading,
     error,
     refetch: () => dispatch(fetchBatches()),

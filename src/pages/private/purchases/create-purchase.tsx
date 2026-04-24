@@ -225,7 +225,7 @@ const CreatePurchasePage = () => {
       updateItem(index, "itemType", "FINISHED");
       updateItem(index, "taxInclusive", product.taxInclusive);
       updateItem(index, "sellingPrice", v.sellingPrice);
-      updateItem(index, "mrp", v.mrp);
+      updateItem(index, "mrp", Number(v.mrp));
       const taxRate = product.taxInclusive
         ? 0
         : (Number(product.cgstPercent) + Number(product.sgstPercent)) / 100;
@@ -574,7 +574,7 @@ const CreatePurchasePage = () => {
                           getLabel={(option) =>
                             typeof option === "string" ? option : option.label
                           }
-                          onChange={() => {}} // No input change needed
+                          onChange={() => { }} // No input change needed
                           onSelect={(opt) => {
                             if (opt && typeof opt !== "string") {
                               const val = opt.value;
@@ -582,7 +582,7 @@ const CreatePurchasePage = () => {
                               handleVariantSelect(index, val);
                             }
                           }}
-                          // renderOption handled internally or customize differently if needed
+                        // renderOption handled internally or customize differently if needed
                         />
                       )}
                     </Grid>

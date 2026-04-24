@@ -1,8 +1,8 @@
-export default function formatRupee(amount: number) {
-  console.log(amount)
-  if (typeof amount !== "number" || !isFinite(amount)) {
+export default function formatRupee(amount: any) {
+  const num = Number(amount);
+  if (isNaN(num) || !isFinite(num)) {
     return "";
   }
 
-  return `₹ ${amount.toFixed(2)}`;
+  return `₹ ${num.toFixed(2)}`;
 }

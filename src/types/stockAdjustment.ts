@@ -2,6 +2,7 @@ export interface StockAdjustment {
   id: string;
   productVariantId: string;
   productName: string;
+  variantSku?: string;
   batchNo: string;
   type: "+" | "-";
   quantity: number;

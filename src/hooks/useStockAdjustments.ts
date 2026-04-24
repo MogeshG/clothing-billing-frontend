@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
 import {
@@ -12,11 +12,15 @@ export const useStockAdjustments = () => {
     (state: RootState) => state.stockAdjustments,
   );
 
-  useEffect(() => {
-    dispatch(fetchStockAdjustments());
-  }, [dispatch]);
+  const loadBatches = useCallback(
+    () => dispatch(fetchBatchesForAdjustment()),
+    [dispatch],
+  );
 
-  const loadBatches = () => dispatch(fetchBatchesForAdjustment());
+  const refetchAdjustments = useCallback(
+    () => dispatch(fetchStockAdjustments()),
+    [dispatch],
+  );
 
   return {
     adjustments,
@@ -24,6 +28,6 @@ export const useStockAdjustments = () => {
     loading,
     error,
     loadBatches,
-    refetchAdjustments: () => dispatch(fetchStockAdjustments()),
+    refetchAdjustments,
   };
 };

@@ -2,7 +2,7 @@ import { lazy } from "react";
 
 export const LoginPage = lazy(() => import("../pages/public/Login.tsx"));
 export const DashboardPage = lazy(
-  () => import("../pages/private/dashboard.tsx"),
+  () => import("../pages/private/dashboard/index.tsx"),
 );
 export const CustomerPage = lazy(
   () => import("../pages/private/customers/customer.tsx"),
@@ -63,4 +63,8 @@ export const StockAdjustmentsPage = lazy(
 );
 export const NewStockAdjustmentPage = lazy(
   () => import("../pages/private/stock-adjustments/new-adjustment.tsx"),
+);
+
+export const SettingsPage = lazy(
+  () => import("../pages/private/settings/settings.tsx"),
 );

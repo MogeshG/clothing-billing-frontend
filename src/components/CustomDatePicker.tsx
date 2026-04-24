@@ -54,6 +54,7 @@ export default function CustomDatePicker({
           value={value}
           onChange={onChange}
           disabled={disabled}
+          format="DD/MM/YYYY"
           slotProps={{
             textField: {
               fullWidth,

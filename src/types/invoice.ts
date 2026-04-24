@@ -26,6 +26,7 @@ export interface InvoiceItem {
   productName: string;
   productSku?: string;
   variantSku?: string;
+  batchNo?: string;
   hsnCode: string;
   size?: string;
   color?: string;
@@ -35,6 +36,7 @@ export interface InvoiceItem {
   cgstPercent: number;
   sgstPercent: number;
   igstPercent: number;
+  taxInclusive: boolean;
   cgstAmount: number;
   sgstAmount: number;
   igstAmount: number;
@@ -51,11 +53,14 @@ export interface AddInvoiceForm {
   customerAddress?: string;
   invoiceDate: string;
   paymentMethod?: string;
+  discount: number;
+  paidAmount: number;
   items: Array<{
     productVariantId?: string;
     productName: string;
     productSku?: string;
     variantSku?: string;
+    batchNo?: string;
     hsnCode: string;
     size?: string;
     color?: string;
@@ -65,5 +70,6 @@ export interface AddInvoiceForm {
     cgstPercent: number;
     sgstPercent: number;
     igstPercent: number;
+    taxInclusive: boolean;
   }>;
 }

@@ -21,6 +21,7 @@ import {
   UpdatePurchasePage,
   VendorsPage,
   ViewPurchasePage,
+  SettingsPage,
 } from "./pages";
 import EditProductPage from "../pages/private/products/edit-product";
 import POSPage from "../pages/private/pos/pos";
@@ -129,12 +130,16 @@ export const privateRoutes = [
         element: <ProductCategoriesPage />,
       },
       {
-        path: "sales/pos",
+        path: "pos",
         element: <POSPage />,
       },
       {
         path: "sales/invoices",
         element: <InvoicesPage />,
+      },
+      {
+        path: "settings",
+        element: <SettingsPage />,
       },
     ],
   },

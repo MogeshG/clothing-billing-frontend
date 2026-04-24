@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useStockAdjustments } from "../../../hooks/useStockAdjustments";
@@ -10,11 +10,12 @@ import CustomSelect from "../../../components/CustomSelect";
 import CustomInput from "../../../components/CustomInput";
 import type { RootState, AppDispatch } from "../../../store";
 import type { BatchForAdjustment } from "../../../types/stockAdjustment";
-import { Alert } from "@mui/material";
+import { Alert, Snackbar } from "@mui/material";
 
 interface FormData {
   productVariantId: string;
   productName: string;
+  variantSku: string;
   batchNo: string;
   type: "+" | "-";
   quantity: number;
@@ -33,6 +34,7 @@ const AdjustmentPage = () => {
   const [formData, setFormData] = useState<FormData>({
     productVariantId: "",
     productName: "",
+    variantSku: "",
     batchNo: "",
     type: "+",
     quantity: 1,
@@ -43,6 +45,23 @@ const AdjustmentPage = () => {
   const [selectedBatch, setSelectedBatch] = useState<BatchForAdjustment | null>(
     null,
   );
+
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "info" | "warning";
+  }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const showMessage = useCallback((
+    message: string,
+    severity: "success" | "error" | "info" | "warning" = "success",
+  ) => {
+    setSnackbar({ open: true, message, severity });
+  }, []);
 
   useEffect(() => {
     loadBatches();
@@ -55,6 +74,7 @@ const AdjustmentPage = () => {
         ...prev,
         productVariantId: batch.id,
         productName: batch.productName,
+        variantSku: batch.variantSku,
         batchNo: batch.batchNo,
       }));
     } else {
@@ -63,17 +83,18 @@ const AdjustmentPage = () => {
         ...prev,
         productVariantId: "",
         productName: "",
+        variantSku: "",
         batchNo: "",
       }));
     }
   };
 
-  const handleTypeChange = (value: string | number) => {
-    setFormData((prev) => ({ ...prev, type: value as "+" | "-" }));
+  const handleTypeChange = (e: any) => {
+    setFormData((prev) => ({ ...prev, type: e.target.value as "+" | "-" }));
   };
 
-  const handleReasonChange = (value: string | number) => {
-    setFormData((prev) => ({ ...prev, reason: String(value) }));
+  const handleReasonChange = (e: any) => {
+    setFormData((prev) => ({ ...prev, reason: String(e.target.value) }));
   };
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +107,7 @@ const AdjustmentPage = () => {
 
   const handleSubmit = async () => {
     if (!selectedBatch || formData.quantity <= 0) {
-      alert("Please select batch and valid quantity");
+      showMessage("Please select batch and valid quantity", "error");
       return;
     }
 
@@ -94,22 +115,24 @@ const AdjustmentPage = () => {
       formData.type === "-" &&
       formData.quantity > selectedBatch.remainingQuantity
     ) {
-      alert(
+      showMessage(
         `Cannot reduce more than remaining quantity: ${selectedBatch.remainingQuantity}`,
+        "error",
       );
       return;
     }
 
     if (selectedBatch.status === "EXPIRED") {
-      if (!confirm("This batch is expired. Continue?")) return;
+      if (!window.confirm("This batch is expired. Continue?")) return;
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await dispatch(createStockAdjustment(formData as any)).unwrap();
-      navigate("/stock-adjustments");
-    } catch (err) {
+      showMessage("Adjustment created successfully!");
+      setTimeout(() => navigate("/stock-adjustments"), 1500);
+    } catch (err: any) {
       console.error("Adjustment failed", err);
+      showMessage(err.message || "Adjustment failed", "error");
     }
   };
 
@@ -125,20 +148,33 @@ const AdjustmentPage = () => {
       <div className="flex flex-col w-full bg-white space-y-6 p-6 rounded-md mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl">
           <CustomSearch
+            label=""
             data={stockAdjustments.batches}
             value={selectedBatch}
-            getLabel={(batch) => `${batch.batchNo} - ${batch.productName}`}
+            getLabel={(batch) =>
+              `${batch.batchNo} ${batch.variantSku ? `(${batch.variantSku})` : ""} - ${batch.productName}`
+            }
             className="h-full flex-1"
             onSelect={handleBatchSelect}
-            placeholder="Search batch..."
+            placeholder="Search batch by no, sku or name..."
           />
 
           <CustomInput label="Product" value={formData.productName} disabled />
 
+          <CustomInput label="SKU" value={selectedBatch?.variantSku || ""} disabled />
+
           <CustomInput label="Batch No" value={formData.batchNo} disabled />
 
+          <CustomInput
+            label="Current Quantity"
+            value={selectedBatch?.remainingQuantity ?? ""}
+            disabled
+          />
+
+          <CustomInput label="Batch Status" value={selectedBatch?.status || ""} disabled />
+
           <CustomSelect
-            label="Type"
+            label="Adjustment Type"
             value={formData.type}
             onChange={handleTypeChange}
             options={[
@@ -149,7 +185,7 @@ const AdjustmentPage = () => {
           />
 
           <CustomInput
-            label="Quantity"
+            label="Adjustment Quantity"
             type="number"
             value={formData.quantity}
             onChange={handleQuantityChange}
@@ -169,6 +205,19 @@ const AdjustmentPage = () => {
               { value: "Other", label: "Other" },
             ]}
             required
+          />
+
+          <CustomInput
+            label="Updated Stock quantity"
+            value={
+              selectedBatch
+                ? `${selectedBatch.remainingQuantity} ➜ ${formData.type === "+"
+                  ? selectedBatch.remainingQuantity + formData.quantity
+                  : selectedBatch.remainingQuantity - formData.quantity
+                }`
+                : "N/A"
+            }
+            disabled
           />
         </div>
 
@@ -192,6 +241,22 @@ const AdjustmentPage = () => {
           </CustomButton>
         </div>
       </div>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

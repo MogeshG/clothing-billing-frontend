@@ -11,14 +11,14 @@ export interface StockMovement {
   productVariantId: string;
   productName: string;
   variantSku?: string;
-  sku?: string; // product sku
   invoiceItemId?: string;
   purchaseItemId?: string;
   invoiceNo?: string;
   purchaseNo?: string;
-  batchNo?: string; // for adjustment
-  type: "IN" | "OUT" | "ADJUSTMENT";
+  batchNo?: string; // for adjustment reference
+  type: "PURCHASE" | "SALE" | "ADJUSTMENT";
   quantity: number;
+  unit?: string;
   createdAt: string;
   items: StockMovementItem[]; // FIFO breakdown
 }

@@ -15,5 +15,6 @@ export type ItemForm = {
   cgstPercent: number;
   sgstPercent: number;
   igstPercent: number;
+  taxInclusive: boolean;
   total: number;
 };

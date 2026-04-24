@@ -19,14 +19,14 @@ api.interceptors.response.use(
   },
 );
 
-export const apiCall = async (
-  endpoint: string,
-  options: { method?: string; data?: Record<string, unknown> } = {},
-) => {
-  const { method = "GET", data } = options;
-  const config = { method, data };
-  const response = await api(endpoint, config);
-  return response.data;
-};
+// export const apiCall = async (
+//   endpoint: string,
+//   options: { method?: string; data?: Record<string, unknown> } = {},
+// ) => {
+//   const { method = "GET", data } = options;
+//   const config = { method, data };
+//   const response = await api(endpoint, config);
+//   return response.data;
+// };
 
 export default api;

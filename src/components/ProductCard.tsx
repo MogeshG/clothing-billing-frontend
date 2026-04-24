@@ -12,7 +12,11 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ batch, items, onAdd }) => {
-  const existingItem = items.find((item) => item.batchNo === batch.batchNo);
+  const existingItem = items.find(
+    (item) =>
+      (item.batchNo && item.batchNo === batch.batchNo) ||
+      (!item.batchNo && item.variantSku === batch.variantSku),
+  );
 
   const syncedQuantity = existingItem ? existingItem.quantity : 0;
   const [quantity, setQuantity] = React.useState(syncedQuantity);
@@ -59,18 +63,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ batch, items, onAdd }) => {
             {batch.productName}
           </h3>
 
-          <div className="flex flex-wrap gap-2 mt-1">
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+          <div className="flex flex-col gap-0.5 mt-1">
+            <span className="text-[11px] text-gray-600">
               Batch: {batch.batchNo}
             </span>
 
             {batch.expiryDate && (
               <span
-                className={`text-[11px] px-2 py-0.5 rounded-full ${
-                  isExpiringSoon
-                    ? "bg-red-100 text-red-600"
-                    : "bg-orange-100 text-orange-600"
-                }`}
+                className={`text-[11px] ${isExpiringSoon
+                  ? "text-red-600"
+                  : "text-orange-600"
+                  }`}
               >
                 Exp: {dayjs(batch.expiryDate).format("DD MMM")}
               </span>
@@ -80,10 +83,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ batch, items, onAdd }) => {
 
         {/* Price */}
         <div className="text-right">
-          <p className="text-lg font-bold text-gray-900">
-            {formatRupee(batch.sellingPrice)}
-          </p>
-          <p className="text-[11px] text-gray-500">
+          <div className="flex flex-col items-end">
+            <p className="text-lg font-bold text-gray-900 leading-tight">
+              {formatRupee(batch.sellingPrice)}
+            </p>
+            {batch.mrp > batch.sellingPrice && (
+              <p className="text-[11px] text-gray-400 line-through">
+                {formatRupee(batch.mrp)}
+              </p>
+            )}
+          </div>
+          <p className="text-[11px] text-gray-500 mt-1">
             Stock: {batch.remainingQuantity}
           </p>
         </div>
@@ -98,7 +108,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ batch, items, onAdd }) => {
           <Stepper
             value={quantity}
             min={0}
-            max={batch.remainingQuantity}
+            max={batch.remainingQuantity + syncedQuantity}
             onChange={(val) => {
               setQuantity(val);
               debouncedOnAdd(val);

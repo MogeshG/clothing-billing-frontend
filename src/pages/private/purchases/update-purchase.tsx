@@ -240,12 +240,12 @@ const UpdatePurchasePage = () => {
         updateItem(index, "itemType", "FINISHED");
         updateItem(index, "taxInclusive", product?.taxInclusive || false);
         updateItem(index, "sellingPrice", v.sellingPrice);
-        updateItem(index, "mrp", v.mrp);
+        updateItem(index, "mrp", Number(v.mrp));
         const taxRate = product?.taxInclusive
           ? 0
           : ((Number(product?.cgstPercent) || 0) +
-              Number(product?.sgstPercent || 0)) /
-            100;
+            Number(product?.sgstPercent || 0)) /
+          100;
         updateItem(
           index,
           "total",
@@ -572,7 +572,7 @@ const UpdatePurchasePage = () => {
                           getLabel={(option) =>
                             typeof option === "string" ? option : option.label
                           }
-                          onChange={() => {}}
+                          onChange={() => { }}
                           onSelect={(opt) => {
                             if (opt && typeof opt !== "string") {
                               handleVariantSelect(index, opt.value);

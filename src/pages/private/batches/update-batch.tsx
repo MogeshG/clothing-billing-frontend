@@ -16,6 +16,7 @@ import type { AppDispatch } from "../../../store";
 import dayjs from "dayjs";
 import { useDispatch } from "react-redux";
 import CustomSelect from "../../../components/CustomSelect";
+import Loader from "../../../components/CustomLoader";
 
 const UpdateBatchPage = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -35,10 +36,9 @@ const UpdateBatchPage = () => {
     if (!batch) {
       dispatch(fetchBatches());
     } else {
-      // Only editable fields for PENDING status
       setFormData({
         status: batch.status,
-        sellingPrice: batch.sellingPrice,
+        sellingPrice: batch.sellingPrice || batch.mrp || undefined,
         manufactureDate: batch.manufactureDate,
         expiryDate: batch.expiryDate,
       });
@@ -53,11 +53,7 @@ const UpdateBatchPage = () => {
     const newErrors: Record<string, string> = {};
     let valid = true;
 
-    // Basic validation
-    if (batch?.status !== "PENDING") {
-      newErrors.status = "Only PENDING batches can be edited";
-      valid = false;
-    }
+    // We can add validation here if needed
 
     setErrors(newErrors);
     return valid;
@@ -67,10 +63,21 @@ const UpdateBatchPage = () => {
     e.preventDefault();
     if (!id || !validateForm()) return;
 
-    const submitData: UpdateBatchForm & { id: string } = {
+    // Send the payload in snake_case to match backend
+    const isEpoch = (v?: string) =>
+      !v || new Date(v).getFullYear() <= 1970;
+
+    const submitData: any = {
       id,
-      ...formData,
+      status: formData.status,
+      selling_price: formData.sellingPrice,
+      manufacture_date: isEpoch(formData.manufactureDate) ? null : formData.manufactureDate,
+      expiry_date: isEpoch(formData.expiryDate) ? null : formData.expiryDate,
     };
+    // Strip undefined fields (but keep explicit nulls for clearing dates)
+    Object.keys(submitData).forEach(
+      (k) => submitData[k] === undefined && delete submitData[k]
+    );
 
     setIsSubmitting(true);
     try {
@@ -84,54 +91,37 @@ const UpdateBatchPage = () => {
   };
 
   if (!batch) {
-    return <div>Loading batch...</div>;
+    return <Loader />;
   }
 
-  const statusColor =
-    batch.status === "ACTIVE"
-      ? "bg-green-100 text-green-800"
-      : batch.status === "PENDING"
-        ? "bg-yellow-100 text-yellow-800"
-        : "bg-red-100 text-red-800";
+  const totalGst = (Number(batch.cgstPercent) || 0) + (Number(batch.sgstPercent) || 0);
 
   return (
     <div className="flex flex-col m-2 w-full space-y-4 p-3 overflow-y-auto">
       <h1 className="text-3xl font-bold text-gray-800">Update Batch</h1>
-      <div className="flex flex-col w-full bg-white space-y-6 p-6 rounded-md mx-auto max-w-6xl">
+      <div className="flex flex-col w-full bg-white space-y-6 p-6 rounded-md mx-auto max-w-6xl shadow-sm border border-gray-100">
         {error && (
           <Alert severity="error" onClose={() => dispatch(clearError())}>
             {error}
           </Alert>
         )}
-        {batch.status !== "PENDING" && (
-          <Alert severity="warning">
-            <span className={`font-semibold ${statusColor}`}>
-              Status: {batch.status}
-            </span>
-            <br />
-            Only PENDING batches can be edited. For ACTIVE batches use Stock
-            Adjustment or Block option from list.
-          </Alert>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Read-only Info */}
-
-          <Grid container spacing={3}>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Grid container spacing={4}>
             <Grid size={{ xs: 12, md: 4 }}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-500 mb-1">
                 Batch No
               </label>
-              <p className="font-semibold">{batch.batchNo}</p>
+              <p className="font-semibold text-lg text-gray-800">{batch.batchNo}</p>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-500 mb-1">
                 Product
               </label>
-              <p>{batch.productName}</p>
+              <p className="font-semibold text-gray-800">{batch.productName}</p>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-500 mb-1">
                 Status *
               </label>
               <CustomSelect
@@ -151,23 +141,43 @@ const UpdateBatchPage = () => {
             </Grid>
 
             <Grid size={{ xs: 12, md: 4 }}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-500 mb-1">
+                Barcode
+              </label>
+              <p className="font-semibold text-gray-800">{batch.barcode}</p>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <label className="block text-sm font-medium text-gray-500 mb-1">
                 Quantity
               </label>
-              <p>{batch.quantity}</p>
+              <p className="font-semibold text-gray-800">{batch.quantity}</p>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-500 mb-1">
                 Remaining
               </label>
-              <p>{batch.remainingQuantity}</p>
+              <p className="font-semibold text-gray-800">{batch.remainingQuantity}</p>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 4 }}>
+              <label className="block text-sm font-medium text-gray-500 mb-1">
+                MRP
+              </label>
+              <p className="font-semibold text-gray-800">₹{batch.mrp}</p>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-500 mb-1">
                 Purchase Price
               </label>
-              <p>₹{batch.purchasePrice.toLocaleString()}</p>
+              <p className="font-semibold text-gray-800">₹{batch.purchasePrice.toLocaleString()}</p>
             </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <label className="block text-sm font-medium text-gray-500 mb-1">
+                Total GST
+              </label>
+              <p className="font-semibold text-gray-800">{totalGst}%</p>
+            </Grid>
+
             <Grid size={{ xs: 12, md: 4 }}>
               <CustomInput
                 label="Selling Price"
@@ -212,7 +222,7 @@ const UpdateBatchPage = () => {
             </Grid>
           </Grid>
 
-          <div className="flex justify-end gap-4 pt-4">
+          <div className="flex justify-end gap-4 pt-6 border-t border-gray-100">
             <CustomButton
               variant="outlined"
               onClick={() => navigate("/batches")}

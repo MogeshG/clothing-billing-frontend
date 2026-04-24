@@ -29,9 +29,9 @@ interface DetailPanelProps {
 
 const getTypeColor = (type: StockMovement["type"]) => {
   switch (type) {
-    case "IN":
+    case "PURCHASE":
       return "success";
-    case "OUT":
+    case "SALE":
       return "error";
     case "ADJUSTMENT":
       return "warning";
@@ -42,12 +42,12 @@ const getTypeColor = (type: StockMovement["type"]) => {
 
 const getTypeLabel = (type: StockMovement["type"]) => {
   switch (type) {
-    case "IN":
-      return "IN";
-    case "OUT":
-      return "OUT";
+    case "PURCHASE":
+      return "PURCHASE";
+    case "SALE":
+      return "SALE";
     case "ADJUSTMENT":
-      return "ADJ";
+      return "ADJUST";
     default:
       return type;
   }
@@ -78,7 +78,7 @@ const StockMovementsPage = () => {
         size: 200,
       },
       {
-        accessorKey: "sku",
+        accessorKey: "variantSku",
         header: "SKU",
         size: 120,
       },
@@ -160,7 +160,7 @@ const StockMovementsPage = () => {
     const csvRows = filteredData.map((m) => [
       dayjs(m.createdAt).format("DD/MM/YYYY HH:mm"),
       m.productName,
-      m.sku || "",
+      m.variantSku || "",
       m.type,
       m.quantity,
       m.invoiceNo || m.purchaseNo || m.batchNo || "N/A",

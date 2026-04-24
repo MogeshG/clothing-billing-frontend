@@ -12,11 +12,12 @@ export interface Batch {
   vendorName?: string;
   purchaseDate: string;
   purchasePrice: number;
-  mrp: string;
+  mrp: number;
   sellingPrice: number;
   cgstPercent: number;
   sgstPercent: number;
   igstPercent: number;
+  taxInclusive: boolean;
   quantity: number;
   remainingQuantity: number;
   manufactureDate?: string;
@@ -28,6 +29,7 @@ export interface Batch {
 export interface UpdateBatchForm {
   status: string;
   sellingPrice?: number;
+  mrp?: number;
   manufactureDate?: string;
   expiryDate?: string;
 }

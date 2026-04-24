@@ -1,10 +1,12 @@
- 
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 import type {
   StockAdjustment,
   StockAdjustmentsState,
   BatchForAdjustment,
 } from "../types/stockAdjustment";
+import { API_BASE } from "../utils/auth";
+import { camelToSnake, snakeToCamel } from "../utils/caseConvert";
 
 interface StockAdjustmentsStateExtended extends StockAdjustmentsState {
   batches: BatchForAdjustment[];
@@ -19,76 +21,31 @@ const initialState: StockAdjustmentsStateExtended = {
   error: null,
 };
 
-// Mock data
-const mockAdjustments: StockAdjustment[] = [
-  {
-    id: "adj1",
-    productVariantId: "pv1",
-    productName: "T-Shirt Cotton M Blue",
-    batchNo: "B001",
-    type: "-",
-    quantity: 5,
-    reason: "Damaged",
-    createdBy: "admin",
-    createdAt: "2024-10-04T16:20:00Z",
-  },
-  {
-    id: "adj2",
-    productVariantId: "pv2",
-    productName: "Jeans 32 Black",
-    batchNo: "B002",
-    type: "+",
-    quantity: 10,
-    reason: "Stock count mismatch",
-    createdBy: "manager",
-    createdAt: "2024-10-05T10:30:00Z",
-  },
-];
-
-const mockBatches: BatchForAdjustment[] = [
-  {
-    id: "b1",
-    batchNo: "B001",
-    productName: "T-Shirt Cotton M Blue",
-    variantSku: "TS001-M-BLUE",
-    remainingQuantity: 60,
-    expiryDate: "2025-01-01",
-    status: "ACTIVE",
-  },
-  {
-    id: "b2",
-    batchNo: "B002",
-    productName: "Jeans 32 Black",
-    variantSku: "J001-32-BLACK",
-    remainingQuantity: 45,
-    status: "ACTIVE",
-  },
-  {
-    id: "b3",
-    batchNo: "B003",
-    productName: "T-Shirt Cotton M Blue",
-    variantSku: "TS001-M-BLUE",
-    remainingQuantity: 20,
-    expiryDate: "2024-11-01",
-    status: "EXPIRED",
-  },
-];
-
 export const fetchStockAdjustments = createAsyncThunk(
   "stockAdjustments/fetchStockAdjustments",
-  async (): Promise<StockAdjustment[]> => {
-    return new Promise((resolve) =>
-      setTimeout(() => resolve(mockAdjustments), 500),
-    );
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/v1/stock-adjustments`, {
+        baseURL: API_BASE,
+      });
+      return snakeToCamel(response.data) as StockAdjustment[];
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error || "Failed to fetch adjustments");
+    }
   },
 );
 
 export const fetchBatchesForAdjustment = createAsyncThunk(
   "stockAdjustments/fetchBatchesForAdjustment",
-  async (): Promise<BatchForAdjustment[]> => {
-    return new Promise((resolve) =>
-      setTimeout(() => resolve(mockBatches), 300),
-    );
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/v1/stock-adjustments/batches`, {
+        baseURL: API_BASE,
+      });
+      return snakeToCamel(response.data) as BatchForAdjustment[];
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error || "Failed to fetch batches");
+    }
   },
 );
 
@@ -96,18 +53,17 @@ export const createStockAdjustment = createAsyncThunk(
   "stockAdjustments/createStockAdjustment",
   async (
     adjustment: Omit<StockAdjustment, "id" | "createdAt">,
-  ): Promise<StockAdjustment> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newAdjustment: StockAdjustment = {
-          id: Math.random().toString(36).substr(2, 9),
-          ...adjustment,
-          createdAt: new Date().toISOString(),
-        };
-        mockAdjustments.unshift(newAdjustment);
-        resolve(newAdjustment);
-      }, 1000);
-    });
+    { rejectWithValue }
+  ) => {
+    try {
+      const snakeData = camelToSnake(adjustment);
+      const response = await axios.post(`/v1/stock-adjustments`, snakeData, {
+        baseURL: API_BASE,
+      });
+      return snakeToCamel(response.data.adjustment) as StockAdjustment;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error || "Failed to create adjustment");
+    }
   },
 );
 
@@ -132,7 +88,7 @@ const stockAdjustmentsSlice = createSlice({
       })
       .addCase(fetchStockAdjustments.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || "Failed to fetch adjustments";
+        state.error = action.payload as string;
       })
       // Fetch batches
       .addCase(fetchBatchesForAdjustment.fulfilled, (state, action) => {
@@ -149,7 +105,7 @@ const stockAdjustmentsSlice = createSlice({
       })
       .addCase(createStockAdjustment.rejected, (state, action) => {
         state.creating = false;
-        state.error = action.error.message || "Failed to create adjustment";
+        state.error = action.payload as string;
       });
   },
 });

@@ -7,17 +7,19 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     try {
       const token = "fake-jwt-token-" + Date.now();
       setToken(token);
       navigate("/dashboard");
     } catch (err) {
-      alert("Login failed");
+      setError("Login failed. Please check your credentials.");
       console.error(err);
     }
   };
@@ -42,6 +44,12 @@ const Login = () => {
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
             Login
           </h2>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm mb-5 text-center">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-5">
             {/* Phone */}

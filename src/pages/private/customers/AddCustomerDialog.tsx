@@ -23,9 +23,14 @@ import { useCustomers } from "../../../hooks/useCustomers";
 interface AddCustomerDialogProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: (customer: any) => void;
 }
 
-const AddCustomerDialog = ({ open, onClose }: AddCustomerDialogProps) => {
+const AddCustomerDialog = ({
+  open,
+  onClose,
+  onSuccess,
+}: AddCustomerDialogProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const { refetch } = useCustomers();
 
@@ -52,9 +57,13 @@ const AddCustomerDialog = ({ open, onClose }: AddCustomerDialogProps) => {
 
   const onSubmit = async (data: CreateCustomerForm) => {
     try {
-      await dispatch(addCustomer(data)).unwrap();
+      const result = await dispatch(addCustomer(data)).unwrap();
+      if (onSuccess) {
+        const created = result.find((c: any) => c.phone === data.phone);
+        if (created) onSuccess(created);
+      }
       onClose();
-      refetch ();
+      refetch();
       reset();
     } catch (error) {
       console.error("Add customer failed", error);

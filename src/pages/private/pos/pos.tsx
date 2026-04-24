@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import { Alert, Grid, IconButton } from "@mui/material";
-import { addInvoice, clearError } from "../../../slices/invoicesSlice";
+import { Alert, CircularProgress, Grid, IconButton, Snackbar, Typography } from "@mui/material";
 import { useInvoices } from "../../../hooks/useInvoices";
+import { usePreferences } from "../../../hooks/usePreferences";
+import { API_BASE } from "../../../utils/auth";
 import {
   Dialog,
   DialogTitle,
@@ -13,11 +13,11 @@ import {
   ListItem,
   ListItemText,
   DialogActions,
-  Button as MuiButton,
 } from "@mui/material";
+import AddCustomerDialog from "../customers/AddCustomerDialog";
 import type { Invoice } from "../../../types/invoice";
 
-import { useCustomers } from "../../../hooks/useCustomers";
+import { useCustomers, } from "../../../hooks/useCustomers";
 import type { AddInvoiceForm } from "../../../types/invoice";
 import type { Batch } from "../../../types/batch";
 import CustomInput from "../../../components/CustomInput";
@@ -35,14 +35,28 @@ import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import formatRupee from "../../../utils/formatRupee";
 import CustomSelect from "../../../components/CustomSelect";
+import {
+  AddCircleOutlineOutlined,
+} from "@mui/icons-material";
+import { fetchCustomers } from "../../../slices/customersSlice";
 
 const POSPage = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const navigate = useNavigate();
-  const { error, drafts } = useInvoices();
-
+  const {
+    drafts,
+    error: invoicesError,
+    addInvoice,
+    createDraftInvoice,
+    finalizeInvoice,
+    updateDraftInvoice,
+    clearError,
+    deleteInvoice
+  } = useInvoices();
+  const { preferences } = usePreferences();
   const { customers } = useCustomers();
-  const { batches, loading: batchesLoading } = useBatches();
+  // Customer Creation State
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const { activeBatches, loading: batchesLoading, refetch: refetchBatches } = useBatches();
   const [batchSearch, setBatchSearch] = useState("");
   const [formData, setFormData] = useState<Partial<AddInvoiceForm>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -59,30 +73,80 @@ const POSPage = () => {
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [showBillModal, setShowBillModal] = useState(false);
   const [billHtml, setBillHtml] = useState("");
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "info" | "warning";
+  }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const showMessage = (
+    message: string,
+    severity: "success" | "error" | "info" | "warning" = "success",
+  ) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleReset = useCallback(() => {
+    setItems([]);
+    setAmountPaid(0);
+    setBillDiscount(0);
+    setCurrentDraftId(null);
+    setSelectedCustomer(null);
+    setErrors({});
+
+    // Set default invoice date
+    setFormData({
+      invoiceDate: dayjs().format("YYYY-MM-DD"),
+    });
+  }, []);
 
   // Auto generate invoiceNo
   useEffect(() => {
-    const dateStr = dayjs().format("YYYYMMDD");
-    const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
-    setFormData((prev) => ({
-      ...prev,
-      invoiceNo: `INV-${dateStr}-${randomStr}`,
-    }));
-  }, []);
+    handleReset();
+  }, [handleReset]);
+
+  // Auto-print when bill is loaded
+  useEffect(() => {
+    if (billHtml && showBillModal) {
+      const timer = setTimeout(() => {
+        const iframe = document.querySelector('iframe[title="Bill Preview"]') as HTMLIFrameElement;
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        }
+      }, 800); // Wait for content to render
+      return () => clearTimeout(timer);
+    }
+  }, [billHtml, showBillModal]);
 
   const filteredBatches = useMemo(() => {
-    return batches
+    return activeBatches
       .filter(
         (batch: Batch) =>
-          batch.productName.toLowerCase().includes(batchSearch.toLowerCase()) ||
-          batch.batchNo.toLowerCase().includes(batchSearch.toLowerCase()) ||
-          batch.barcode.toLowerCase().includes(batchSearch.toLowerCase()),
+          (batch.productName.toLowerCase().includes(batchSearch.toLowerCase()) ||
+            batch.batchNo.toLowerCase().includes(batchSearch.toLowerCase()) ||
+            batch.barcode.toLowerCase().includes(batchSearch.toLowerCase())) &&
+          batch.remainingQuantity > 0
       )
+      .map((batch: Batch) => {
+        const itemInCart = items.find((item) => item.batchNo === batch.batchNo);
+        return {
+          ...batch,
+          remainingQuantity: batch.remainingQuantity - (itemInCart?.quantity || 0),
+        };
+      })
       .slice(0, 10);
-  }, [batches, batchSearch]);
+  }, [activeBatches, batchSearch, items]);
 
   const handleAddBatch = useCallback((batch: Batch, qty: number) => {
-    if (qty <= 0 || batch.remainingQuantity <= 0 || !Number.isFinite(qty))
+    const itemInCart = items.find((item) => item.batchNo === batch.batchNo);
+    const totalAvailable = batch.remainingQuantity + (itemInCart?.quantity || 0);
+
+    if (qty < 0 || qty > totalAvailable || !Number.isFinite(qty))
       return;
 
     const newItem: ItemForm = {
@@ -98,16 +162,24 @@ const POSPage = () => {
       cgstPercent: batch.cgstPercent || 0,
       sgstPercent: batch.sgstPercent || 0,
       igstPercent: batch.igstPercent || 0,
+      taxInclusive: batch.taxInclusive || false,
       total: 0,
     };
     // Recalc total
-    // Safe recalc total
     const subtotal = newItem.price * newItem.quantity - newItem.discount;
-    const taxRate = (newItem.cgstPercent + newItem.sgstPercent) / 100;
+    const taxRate = newItem.taxInclusive
+      ? 0
+      : (newItem.cgstPercent + newItem.sgstPercent) / 100;
     newItem.total = isFinite(subtotal) ? subtotal * (1 + taxRate) : 0;
 
     setItems((prevItems) => {
-      const idx = prevItems.findIndex((item) => item.batchNo === batch.batchNo);
+      if (qty === 0) {
+        return prevItems.filter((item) => item.batchNo !== batch.batchNo);
+      }
+      const idx = prevItems.findIndex((item) =>
+        (item.batchNo && item.batchNo === batch.batchNo) ||
+        (!item.batchNo && item.variantSku === batch.variantSku)
+      );
       if (idx >= 0) {
         const updated = [...prevItems];
         updated[idx] = newItem;
@@ -118,23 +190,34 @@ const POSPage = () => {
   }, []);
 
   const [billDiscount, setBillDiscount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [amountPaid, setAmountPaid] = useState(0);
+  const [invoiceType, setInvoiceType] = useState<"a4" | "thermal">(preferences.invoiceType as any || "a4");
+
+  // Update invoiceType when preferences are loaded
+  useEffect(() => {
+    if (preferences.invoiceType) {
+      setInvoiceType(preferences.invoiceType as any);
+    }
+  }, [preferences.invoiceType]);
 
   const calculateTotals = useMemo(() => {
-    const subTotal = items.reduce(
-      (sum, item) => sum + (item.price * item.quantity - item.discount),
-      0,
-    );
-    const taxTotal = items.reduce(
-      (sum, item) =>
-        sum +
-        (item.price *
-          item.quantity *
-          (item.cgstPercent + item.sgstPercent + item.igstPercent)) /
-          100,
-      0,
-    );
+    const subTotal = items.reduce((sum, item) => {
+      const lineAmount = item.price * item.quantity - item.discount;
+      if (item.taxInclusive) {
+        return sum + lineAmount / (1 + (Number(item.cgstPercent) + Number(item.sgstPercent)) / 100);
+      }
+      return sum + lineAmount;
+    }, 0);
+    const taxTotal = items.reduce((sum, item) => {
+      const lineAmount = item.price * item.quantity - item.discount;
+      const taxRate = (Number(item.cgstPercent) + Number(item.sgstPercent)) / 100;
+      if (item.taxInclusive) {
+        const base = lineAmount / (1 + taxRate);
+        return sum + base * taxRate;
+      }
+      return sum + lineAmount * taxRate;
+    }, 0);
     const grandTotal = subTotal + taxTotal - billDiscount;
     const due = Math.max(0, grandTotal - amountPaid);
     return {
@@ -147,18 +230,31 @@ const POSPage = () => {
     };
   }, [items, billDiscount, amountPaid]);
 
-  const validateForm = (): boolean => {
+  const validateForm = (mode: "DRAFT" | "COMPLETED"): boolean => {
     const newErrors: Record<string, string> = {};
     let valid = true;
 
-    if (!formData.invoiceNo?.trim()) {
-      newErrors.invoiceNo = "Invoice No required";
-      valid = false;
-    }
+    // Common validations
     if (items.length === 0) {
       newErrors.items = "At least one item required";
       valid = false;
+      showMessage("Please add at least one item", "error");
     }
+
+    // Checkout specific validations
+    if (mode === "COMPLETED") {
+      if (!selectedCustomer) {
+        newErrors.customer = "Customer is required for checkout";
+        valid = false;
+        showMessage("Please select a customer for checkout", "error");
+      }
+      if (amountPaid <= 0) {
+        newErrors.amountPaid = "Payment amount is required";
+        valid = false;
+        showMessage("Please enter the payment amount", "error");
+      }
+    }
+
     items.forEach((item, index) => {
       if (!item.productName.trim()) {
         newErrors[`product_${index}`] = "Product required";
@@ -184,107 +280,81 @@ const POSPage = () => {
       invoiceDate: draft.invoiceDate,
     });
     setItems(
-      draft.items.map((invItem) => ({
-        productName: invItem.productName,
-        variantSku: invItem.variantSku || "",
-        barcode: "",
-        hsnCode: invItem.hsnCode,
-        batchNo: "",
-        expiryDate: "",
-        quantity: invItem.quantity,
-        price: invItem.price,
-        discount: invItem.discount,
-        cgstPercent: invItem.cgstPercent,
-        sgstPercent: invItem.sgstPercent,
-        igstPercent: invItem.igstPercent,
-        total: invItem.total,
-      })),
+      draft.items.map((invItem) => {
+        const batchDetails = activeBatches.find((b) => b.batchNo === invItem.batchNo);
+        return {
+          productName: invItem.productName,
+          variantSku: invItem.variantSku || "",
+          barcode: batchDetails?.barcode || "",
+          hsnCode: invItem.hsnCode,
+          batchNo: batchDetails?.batchNo || "",
+          expiryDate: batchDetails?.expiryDate || "",
+          quantity: Number(invItem.quantity),
+          price: Number(invItem.price),
+          discount: Number(invItem.discount),
+          cgstPercent: Number(invItem.cgstPercent),
+          sgstPercent: Number(invItem.sgstPercent),
+          igstPercent: Number(invItem.igstPercent),
+          taxInclusive: invItem.taxInclusive,
+          total: Number(invItem.total),
+        };
+      }),
     );
-    setSelectedCustomer(null);
-    setShowDrafts(false);
+    setAmountPaid(Number(draft.paidAmount || 0));
+    setBillDiscount(Number(draft.discount || 0));
     setCurrentDraftId(draft.id);
+    setSelectedCustomer({
+      id: "", // We don't have the customer ID in the invoice object usually, but we have the details
+      name: draft.customerName || "",
+      phone: draft.customerPhone || "",
+      email: draft.customerEmail || "",
+      address: draft.customerAddress || "",
+    });
+    setShowDrafts(false);
   };
 
-  const handleGenerateBill = async () => {
+  const handleGenerateBill = async (invoiceId?: string) => {
+    const id = invoiceId || currentDraftId;
+    if (!id) return;
+
     setIsSubmitting(true);
     try {
-      if (!validateForm()) return;
-
-      const customerData = {
-        name:
-          selectedCustomer?.name || formData.customerName?.trim() || "Walk-in",
-        phone: selectedCustomer?.phone || formData.customerPhone?.trim() || "",
-        email: selectedCustomer?.email || formData.customerEmail?.trim() || "",
-        address:
-          selectedCustomer?.address || formData.customerAddress?.trim() || "",
-      };
-
-      const totals = calculateTotals;
-
-      const billData = {
-        invoiceNo: formData.invoiceNo!,
-        invoiceDate: formData.invoiceDate || dayjs().format("YYYY-MM-DD"),
-        customer: customerData,
-        paymentMethod,
-        ...totals,
-        items: items.map((item) => ({
-          productName: item.productName,
-          variantSku: item.variantSku || item.batchNo || "",
-          hsnCode: item.hsnCode,
-          quantity: item.quantity,
-          price: item.price,
-          discount: item.discount,
-          cgstPercent: item.cgstPercent,
-          sgstPercent: item.sgstPercent,
-          igstPercent: item.igstPercent,
-          total: item.total,
-        })),
-      };
-
-      const response = await fetch("/api/generate-bill", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(billData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
+      const response = await fetch(`${API_BASE}/v1/invoices/${id}/bill?type=${invoiceType}`);
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
       const result = await response.json();
       if (result.html) {
         setBillHtml(result.html);
         setShowBillModal(true);
-      } else {
-        alert("No bill HTML received from server");
       }
     } catch (err) {
       console.error("Generate bill failed:", err);
-      alert("Failed to generate bill. Check console.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!validateForm("COMPLETED")) return;
 
+    setIsSubmitting(true);
     const submitData: AddInvoiceForm = {
-      invoiceNo: formData.invoiceNo!,
+      status: "COMPLETED" as const,
       customerName:
-        selectedCustomer?.name || formData.customerName?.trim() || undefined,
+        selectedCustomer?.name || formData.customerName?.trim() || "Walk-in",
       customerPhone:
-        selectedCustomer?.phone || formData.customerPhone?.trim() || undefined,
+        selectedCustomer?.phone || formData.customerPhone?.trim() || "",
       customerEmail:
-        selectedCustomer?.email || formData.customerEmail?.trim() || undefined,
+        selectedCustomer?.email || formData.customerEmail?.trim() || "",
       customerAddress:
-        selectedCustomer?.address ||
-        formData.customerAddress?.trim() ||
-        undefined,
+        selectedCustomer?.address || formData.customerAddress?.trim() || "",
       invoiceDate: formData.invoiceDate || dayjs().format("YYYY-MM-DD"),
+      paymentMethod: paymentMethod || "CASH",
+      discount: billDiscount,
+      paidAmount: amountPaid,
       items: items.map((item) => ({
         productName: item.productName,
+        productSku: item.barcode, // Barcode is often used as SKU in POS
         variantSku: item.variantSku,
         hsnCode: item.hsnCode,
         quantity: item.quantity,
@@ -293,15 +363,39 @@ const POSPage = () => {
         cgstPercent: item.cgstPercent,
         sgstPercent: item.sgstPercent,
         igstPercent: item.igstPercent,
+        taxInclusive: item.taxInclusive,
+        batchNo: item.batchNo,
       })),
     };
 
-    setIsSubmitting(true);
     try {
-      await dispatch(addInvoice(submitData)).unwrap();
-      navigate("/sales/invoices");
-    } catch (err) {
+      let result;
+      if (currentDraftId) {
+        // Update draft first to ensure latest items are saved
+        await dispatch(
+          updateDraftInvoice({ id: currentDraftId, invoiceData: submitData }),
+        ).unwrap();
+        // Then finalize it
+        result = await dispatch(
+          finalizeInvoice({
+            id: currentDraftId,
+            paidAmount: submitData.paidAmount,
+            paymentMethod: submitData.paymentMethod,
+          }),
+        ).unwrap();
+      } else {
+        result = await dispatch(addInvoice(submitData)).unwrap();
+      }
+
+      if (result.id) {
+        handleGenerateBill(result.id);
+        refetchBatches();
+      }
+      handleReset();
+      showMessage("Invoice created successfully!");
+    } catch (err: any) {
       console.error("Create invoice failed:", err);
+      showMessage(`Error: ${err}`, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -314,7 +408,9 @@ const POSPage = () => {
         const newItems = [...prevItems];
         const item = { ...newItems[index], [field]: value as any };
         const subtotal = item.price * item.quantity - item.discount;
-        const taxRate = (item.cgstPercent + item.sgstPercent) / 100;
+        const taxRate = item.taxInclusive
+          ? 0
+          : (Number(item.cgstPercent) + Number(item.sgstPercent)) / 100;
         item.total = isFinite(subtotal) ? subtotal * (1 + taxRate) : 0;
         newItems[index] = item;
         return newItems;
@@ -327,31 +423,33 @@ const POSPage = () => {
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const handleCustomerSelect = (customer: {
-    id: string;
-    name: string;
-    phone: string;
-    email?: string;
-    address?: string;
-  }) => {
+  const handleCustomerSelect = (customer: Customer | null) => {
     setSelectedCustomer(customer);
-    setFormData({
-      ...formData,
-      customerName: customer.name,
-      customerPhone: customer.phone,
-      customerEmail: customer.email,
-      customerAddress: customer.address,
-    });
+    if (customer) {
+      setFormData((prev) => ({
+        ...prev,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        customerEmail: customer.email,
+        customerAddress: customer.address,
+      }));
+    }
   };
+
+
+
+  useEffect(() => {
+    dispatch(fetchCustomers());
+  }, [dispatch]);
 
   return (
     <div className="flex flex-col m-2 w-full space-y-4 p-3 overflow-y-auto">
       <h1 className="text-3xl font-bold text-gray-800">POS - New Bill</h1>
       <div className="flex flex-col w-full bg-white space-y-6 p-6 rounded-md mx-auto">
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
+          {invoicesError && (
             <Alert severity="error" onClose={() => dispatch(clearError())}>
-              {error}
+              {invoicesError}
             </Alert>
           )}
 
@@ -361,10 +459,7 @@ const POSPage = () => {
               <Grid size={{ xs: 12, md: 3 }}>
                 <CustomInput
                   label="Invoice No"
-                  value={formData.invoiceNo || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, invoiceNo: e.target.value })
-                  }
+                  value={formData.invoiceNo || "Auto-generated"}
                   disabled
                 />
               </Grid>
@@ -383,22 +478,41 @@ const POSPage = () => {
               <Grid size={{ xs: 12, md: 6 }}>
                 <CustomSearch
                   label="Select Customer"
-                  data={customers.filter((c): c is Customer => c != null)}
+                  data={customers}
+                  value={selectedCustomer}
                   getLabel={(c: Customer) => `${c.name} (${c.phone})`}
-                  onSelect={(item) => item && handleCustomerSelect(item)}
+                  onSelect={(item) => item && handleCustomerSelect(item as Customer)}
                   placeholder="Search customer by name/phone..."
-                  // newOptionText="Add new customer"
+                  actionOption={() => ({
+                    label: "Add new customer",
+                    icon: AddCircleOutlineOutlined,
+                    onClick: () => setIsCustomerModalOpen(true),
+                  })}
                 />
               </Grid>
             </Grid>
           </div>
 
-          {/* Items - 2 Column View */}
+          {/* Customer Creation Dialog */}
+          <AddCustomerDialog
+            open={isCustomerModalOpen}
+            onClose={() => setIsCustomerModalOpen(false)}
+            onSuccess={(customer) => {
+              handleCustomerSelect(customer);
+            }}
+          />
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 w-full">
               <h2 className="text-xl font-semibold text-gray-700">
                 Items ({items.length})
               </h2>
+              <CustomButton
+                onClick={() => setShowDrafts(true)}
+                variant="outlined"
+                size="small"
+              >
+                View Drafts ({drafts.length})
+              </CustomButton>
             </div>
             {errors.items && <Alert severity="error">{errors.items}</Alert>}
 
@@ -489,15 +603,18 @@ const POSPage = () => {
                           size={2}
                           className="text-sm font-medium text-center"
                         >
-                          {formatRupee(item.price)}
+                          {formatRupee(Number(item.price))}
                         </Grid>
                         <Grid size={3} className="flex justify-center">
                           <Stepper
                             value={item.quantity}
                             min={1}
                             max={
-                              batches.find((bt) => bt.batchNo === item.batchNo)
-                                .remainingQuantity
+                              (activeBatches.find(
+                                (bt) =>
+                                  (item.batchNo && bt.batchNo === item.batchNo) ||
+                                  (!item.batchNo && bt.variantSku === item.variantSku),
+                              )?.remainingQuantity || 0) + item.quantity
                             }
                             onChange={(val) =>
                               updateItem(index, "quantity", val)
@@ -542,7 +659,7 @@ const POSPage = () => {
           {/* Additional Fields & Totals */}
           <div className="space-y-4">
             <Grid container spacing={3}>
-              {/* Discount - Left */}
+              {/* Bill Discount - Top Right */}
               <Grid size={{ xs: 12, sm: 4, md: 4 }}>
                 <CustomInput
                   label="Bill Discount (₹)"
@@ -563,10 +680,10 @@ const POSPage = () => {
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   options={[
-                    { value: "", label: "Cash" },
-                    { value: "card", label: "Card" },
-                    { value: "upi", label: "UPI" },
-                    { value: "bank", label: "Bank Transfer" },
+                    { value: "CASH", label: "Cash" },
+                    { value: "CARD", label: "Card" },
+                    { value: "UPI", label: "UPI" },
+                    { value: "BANK", label: "Bank Transfer" },
                   ]}
                 />
               </Grid>
@@ -632,68 +749,130 @@ const POSPage = () => {
           </div>
 
           <div className="flex justify-end gap-4 pt-4">
-            <CustomButton variant="outlined" onClick={() => navigate("/sales")}>
-              Cancel
-            </CustomButton>
             <CustomButton
-              onClick={() => setShowDrafts(true)}
+              onClick={handleReset}
               variant="outlined"
-              disabled={drafts.length === 0}
+
+              disabled={isSubmitting}
             >
-              Load Draft ({drafts.length})
+              Clear
             </CustomButton>
             <CustomButton
-              onClick={handleGenerateBill}
+              onClick={() => {
+                if (!validateForm("DRAFT")) return;
+                const submitData: AddInvoiceForm = {
+                  status: "DRAFT" as const,
+                  customerName: selectedCustomer?.name || formData.customerName?.trim() || "Walk-in",
+                  customerPhone: selectedCustomer?.phone || formData.customerPhone?.trim() || "",
+                  customerEmail: selectedCustomer?.email || formData.customerEmail?.trim() || "",
+                  customerAddress: selectedCustomer?.address || formData.customerAddress?.trim() || "",
+                  invoiceDate: formData.invoiceDate || dayjs().format("YYYY-MM-DD"),
+                  paymentMethod: paymentMethod || "CASH",
+                  discount: billDiscount,
+                  paidAmount: amountPaid,
+                  items: items.map((item) => ({
+                    productName: item.productName,
+                    productSku: item.barcode,
+                    variantSku: item.variantSku,
+                    hsnCode: item.hsnCode,
+                    quantity: item.quantity,
+                    price: item.price,
+                    discount: item.discount,
+                    cgstPercent: item.cgstPercent,
+                    sgstPercent: item.sgstPercent,
+                    igstPercent: item.igstPercent,
+                    taxInclusive: item.taxInclusive,
+                  })),
+                };
+
+                const action = currentDraftId
+                  ? dispatch(updateDraftInvoice({ id: currentDraftId, invoiceData: submitData }))
+                  : dispatch(createDraftInvoice(submitData as AddInvoiceForm));
+
+                action.unwrap()
+                  .then(() => {
+                    showMessage(currentDraftId ? "Draft updated!" : "Draft saved!");
+                    handleReset();
+                  })
+                  .catch((err) => showMessage(`Error: ${err.message}`, "error"));
+              }}
+              variant="outlined"
+              disabled={items.length === 0 || isSubmitting}
+            >
+              Save Draft
+            </CustomButton>
+            <CustomButton
+              onClick={() => handleSubmit()}
               variant="contained"
               disabled={items.length === 0 || isSubmitting}
             >
-              {isSubmitting ? "Generating..." : "Generate Bill"}
+              {isSubmitting ? "Processing..." : "Checkout & Print"}
             </CustomButton>
           </div>
-          {/* Bill Preview Modal */}
           <Dialog
             open={showBillModal}
             onClose={() => {
               setShowBillModal(false);
               setBillHtml("");
             }}
-            maxWidth="lg"
+            maxWidth={invoiceType === "thermal" ? "xs" : "md"}
             fullWidth
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                minHeight: invoiceType === "thermal" ? "600px" : "80vh",
+              }
+            }}
           >
-            <DialogTitle>
-              Bill Preview
-              <div className="float-right flex gap-2">
+            <DialogTitle className="flex justify-between items-center bg-gray-50 border-b p-4">
+              <Typography variant="h6" className="font-bold text-blue-800">
+                Bill Preview ({invoiceType === "thermal" ? "Thermal" : "A4 Size"})
+              </Typography>
+              <div className="flex gap-2">
                 <CustomButton
-                  onClick={() => window.print()}
-                  variant="outlined"
+                  onClick={() => {
+                    const iframe = document.querySelector('iframe[title="Bill Preview"]') as HTMLIFrameElement;
+                    if (iframe && iframe.contentWindow) {
+                      iframe.contentWindow.focus();
+                      iframe.contentWindow.print();
+                    }
+                  }}
+                  variant="contained"
                   size="small"
                 >
-                  Print
+                  Reprint
                 </CustomButton>
                 <CustomButton
                   onClick={() => setShowBillModal(false)}
                   variant="outlined"
                   size="small"
+                  className="border-gray-300 text-gray-600"
                 >
                   Close
                 </CustomButton>
               </div>
             </DialogTitle>
-            <DialogContent style={{ padding: 0, height: "100%" }}>
+            <DialogContent className="p-0 bg-gray-100 flex justify-center">
               {billHtml ? (
-                <iframe
-                  srcDoc={billHtml}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    border: "none",
-                    minHeight: "500px",
-                  }}
-                  title="Bill Preview"
-                />
+                <div className={`w-full h-full flex justify-center ${invoiceType === "thermal" ? "p-4" : "p-8"}`}>
+                  <iframe
+                    srcDoc={billHtml}
+                    className="shadow-2xl bg-white"
+                    style={{
+                      width: invoiceType === "thermal" ? "400px" : "100%",
+                      height: "100%",
+                      border: "none",
+                      minHeight: "70vh",
+                    }}
+                    title="Bill Preview"
+                  />
+                </div>
               ) : (
-                <div className="flex items-center justify-center h-64">
-                  Loading bill...
+                <div className="flex flex-col items-center justify-center h-96 gap-4">
+                  <CircularProgress size={40} />
+                  <Typography variant="body1" className="text-gray-500 animate-pulse">
+                    Preparing your bill...
+                  </Typography>
                 </div>
               )}
             </DialogContent>
@@ -714,6 +893,28 @@ const POSPage = () => {
                   {drafts.slice(0, 10).map((draft) => (
                     <ListItem
                       key={draft.id}
+                      secondaryAction={
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          color="error"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm("Are you sure you want to delete this draft?")) {
+                              dispatch(deleteInvoice(draft.id))
+                                .unwrap()
+                                .then(() => showMessage("Draft deleted successfully"))
+                                .catch((err) => showMessage(`Failed to delete draft: ${err.message}`, "error"));
+                              if (currentDraftId === draft.id) {
+                                handleReset();
+                              }
+                            }
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      }
+                      sx={{ cursor: "pointer", "&:hover": { backgroundColor: "#f5f5f5" } }}
                       onClick={() => handleLoadDraft(draft)}
                     >
                       <ListItemText
@@ -726,12 +927,27 @@ const POSPage = () => {
               )}
             </DialogContent>
             <DialogActions>
-              <MuiButton onClick={() => setShowDrafts(false)}>Close</MuiButton>
+              <CustomButton onClick={() => setShowDrafts(false)}>Close</CustomButton>
             </DialogActions>
           </Dialog>
+          <Snackbar
+            open={snackbar.open}
+            autoHideDuration={4000}
+            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          >
+            <Alert
+              onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+              severity={snackbar.severity}
+              variant="filled"
+              sx={{ width: "100%" }}
+            >
+              {snackbar.message}
+            </Alert>
+          </Snackbar>
         </form>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 

@@ -7,7 +7,7 @@ import {
   InputAdornment,
   type SelectProps,
 } from "@mui/material";
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import clsx from "clsx";
 
 export type InputSize = "small" | "medium";
@@ -61,10 +61,14 @@ export default function CustomSelect({
   helperTextClassName,
   startIconClassName,
   endIconClassName,
-  ...rest
 }: CustomSelectProps) {
+  const [focused, setFocused] = useState(false);
   const showError = hasError && errorText;
 
+  const hasValue =
+    multiple && Array.isArray(value)
+      ? value.length > 0
+      : value !== undefined && value !== "";
   return (
     <div
       className={clsx(
@@ -79,21 +83,26 @@ export default function CustomSelect({
         </span>
       )}
 
-      <FormControl fullWidth disabled={disabled} variant="outlined" size={size}>
-        {labelInside && label && (
-          <InputLabel id="custom-select-label">{label}</InputLabel>
-        )}
+      <FormControl fullWidth disabled={disabled} size={size}>
+        <InputLabel id="custom-select-label" shrink={hasValue || focused}>{label}</InputLabel>
 
         <Select
+          id="custom-select"
           multiple={multiple}
           value={value}
           onChange={(val) => onChange(val)}
-          labelId={!labelInside ? "custom-select-label" : undefined}
-          // label={label ? label : undefined}
-          displayEmpty
+          labelId="custom-select-label"
+          label={label}
           required={required}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           className={clsx("transition-all", selectClassName)}
-          {...rest}
+          renderValue={(selected) => {
+            if (!hasValue) {
+              return <span className="text-gray-400">{label}</span>;
+            }
+            return Array.isArray(selected) ? selected.join(", ") : selected;
+          }}
           startAdornment={
             startIcon ? (
               <InputAdornment position="start">

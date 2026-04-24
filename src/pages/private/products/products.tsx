@@ -153,11 +153,10 @@ const ProductsPage = () => {
         header: "Tax Inclusive",
         Cell: ({ row }) => (
           <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${
-              row.original.taxInclusive
+            className={`px-2 py-1 rounded-full text-xs font-medium ${row.original.taxInclusive
                 ? "bg-blue-100 text-blue-800"
                 : "bg-gray-100 text-gray-800"
-            }`}
+              }`}
           >
             {row.original.taxInclusive ? "Yes" : "No"}
           </span>
@@ -168,11 +167,10 @@ const ProductsPage = () => {
         header: "Active",
         Cell: ({ row }) => (
           <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${
-              row.original.isActive
+            className={`px-2 py-1 rounded-full text-xs font-medium ${row.original.isActive
                 ? "bg-green-100 text-green-800"
                 : "bg-red-100 text-red-800"
-            }`}
+              }`}
           >
             {row.original.isActive ? "Yes" : "No"}
           </span>
