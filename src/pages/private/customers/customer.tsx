@@ -41,7 +41,6 @@ const Customers = () => {
       const selectedIds = table
         .getSelectedRowModel()
         .rows.map((row: any) => row.original.id);
-      console.log(selectedIds);
       if (selectedIds.length > 0) {
         try {
           await dispatch(deleteCustomers(selectedIds)).unwrap();

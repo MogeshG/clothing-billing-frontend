@@ -107,7 +107,6 @@ const CreatePurchasePage = () => {
     }
 
     setErrors(newErrors);
-    console.log(newErrors);
     return valid;
   };
 
@@ -151,7 +150,6 @@ const CreatePurchasePage = () => {
     e.preventDefault();
 
     if (!validateForm()) {
-      console.log(validateForm());
       return;
     }
 
@@ -184,7 +182,6 @@ const CreatePurchasePage = () => {
   };
 
   const variantOptions = useMemo(() => {
-    console.log("products:", products);
     const options: { label: string; value: string; variant: ProductVariant }[] =
       [];
     products.forEach((product: Product) => {
@@ -196,7 +193,6 @@ const CreatePurchasePage = () => {
         });
       });
     });
-    console.log("variantOptions:", options);
     return options;
   }, [products]) as Array<{
     label: string;
@@ -234,8 +230,6 @@ const CreatePurchasePage = () => {
         "total",
         Number(v.costPrice * 1 * (1 + taxRate)).toFixed(2),
       );
-    } else {
-      console.log("no option found for variantId:", variantId);
     }
   };
 
@@ -261,12 +255,7 @@ const CreatePurchasePage = () => {
       // Reset manual input name for finished
       updateItem(index, "itemName", "");
     }
-    // Keep quantity, unit, price manual
   };
-
-  useEffect(() => {
-    console.log(items);
-  }, [items]);
 
   const addItem = () => {
     setItems([
@@ -316,7 +305,6 @@ const CreatePurchasePage = () => {
       // Price is already exclusive of tax
       baseAmount = lineAmount;
     }
-    console.log(sum, baseAmount);
     return sum + baseAmount;
   }, 0);
 

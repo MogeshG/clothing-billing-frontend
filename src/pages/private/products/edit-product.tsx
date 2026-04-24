@@ -52,8 +52,6 @@ const EditProductPage = () => {
   const [showNewVariantForm, setShowNewVariantForm] = useState(false);
   const product = products.find((p) => p.id === id);
 
-  console.log(products);
-
   // Prefill form with existing data
   useEffect(() => {
     if (product) {
