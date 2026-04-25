@@ -1,6 +1,6 @@
 import { lazy } from "react";
 
-export const LoginPage = lazy(() => import("../pages/public/Login.tsx"));
+export const LoginPage = lazy(() => import("../pages/public/Login"));
 export const DashboardPage = lazy(
   () => import("../pages/private/dashboard/index.tsx"),
 );
@@ -23,6 +23,16 @@ export const EditProductPage = lazy(
 
 export const ProductCategoriesPage = lazy(
   () => import("../pages/private/product-categories/product-categories.tsx"),
+);
+
+export const UsersPage = lazy(
+  () => import("../pages/private/users/users.tsx"),
+);
+export const AddUserPage = lazy(
+  () => import("../pages/private/users/add-user.tsx"),
+);
+export const EditUserPage = lazy(
+  () => import("../pages/private/users/edit-user.tsx"),
 );
 
 export const VendorsPage = lazy(

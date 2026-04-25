@@ -12,6 +12,7 @@ import stockAdjustmentsReducer from "./slices/stockAdjustmentsSlice";
 import invoicesReducer from "./slices/invoicesSlice";
 import unitsReducer from "./slices/unitsSlice";
 import preferencesReducer from "./slices/preferenceSlice";
+import usersReducer from "./slices/usersSlice";
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     invoices: invoicesReducer,
     units: unitsReducer,
     preferences: preferencesReducer,
+    users: usersReducer,
   },
 });
 

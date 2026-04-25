@@ -3,12 +3,15 @@ import { Navigate } from "react-router-dom";
 import Layout from "../Layouts/Layout";
 import {
   AddProductPage,
+  AddUserPage,
   AddVendorPage,
   BatchesPage,
   CreatePurchasePage,
   NewStockAdjustmentPage,
   CustomerPage,
   DashboardPage,
+  EditProductPage,
+  EditUserPage,
   EditVendorPage,
   InventoryPage,
   LoginPage,
@@ -19,11 +22,11 @@ import {
   StockMovementsPage,
   UpdateBatchPage,
   UpdatePurchasePage,
+  UsersPage,
   VendorsPage,
   ViewPurchasePage,
   SettingsPage,
 } from "./pages";
-import EditProductPage from "../pages/private/products/edit-product";
 import POSPage from "../pages/private/pos/pos";
 import InvoicesPage from "../pages/private/sales/invoices";
 import Loader from "../components/CustomLoader";
@@ -32,7 +35,7 @@ export const publicRoutes = [
   {
     path: "/login",
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<Loader />}>
         <LoginPage />
       </Suspense>
     ),
@@ -52,7 +55,7 @@ export const privateRoutes = [
       </Suspense>
     ),
     children: [
-      { index: true, element: <Navigate to="dashboard" replace /> },
+      { index: true, element: <Navigate to="pos" replace /> },
       {
         path: "dashboard",
         element: <DashboardPage />,
@@ -128,6 +131,18 @@ export const privateRoutes = [
       {
         path: "product-categories",
         element: <ProductCategoriesPage />,
+      },
+      {
+        path: "users",
+        element: <UsersPage />,
+      },
+      {
+        path: "users/create",
+        element: <AddUserPage />,
+      },
+      {
+        path: "users/edit/:id",
+        element: <EditUserPage />,
       },
       {
         path: "pos",

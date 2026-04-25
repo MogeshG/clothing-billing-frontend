@@ -10,20 +10,21 @@ export const useAuth = () => {
     (state: RootState) => state.app,
   );
 
-  // useEffect(() => {
-  // const checkAuth = async () => {
-  //   dispatch(setAuthLoading(true));
-  //   const valid = await verifyToken();
-  //   if (valid) {
-  //     // Fetch user info if needed
-  //     dispatch(setAuthenticated({ isAuthenticated: true, user: null }));
-  //   } else {
-  //     dispatch(logout());
-  //   }
-  //   dispatch(setAuthLoading(false));
-  // };
-  // checkAuth();
-  // }, [dispatch]); // JWT auth disabled
+  useEffect(() => {
+    const checkAuth = async () => {
+      dispatch(setAuthLoading(true));
+      const result = await verifyToken();
+      if (result.valid) {
+        dispatch(
+          setAuthenticated({ isAuthenticated: true, user: result.user }),
+        );
+      } else {
+        dispatch(logout());
+      }
+      dispatch(setAuthLoading(false));
+    };
+    checkAuth();
+  }, [dispatch]);
 
   return { isAuthenticated, authLoading, user };
 };

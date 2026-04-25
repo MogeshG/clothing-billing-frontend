@@ -5,7 +5,6 @@ import {
   Typography,
   Grid,
   Box,
-  CircularProgress,
   Snackbar,
   Alert,
 } from "@mui/material";
@@ -15,12 +14,22 @@ import CustomButton from "../../../components/CustomButton";
 import { Save as SaveIcon } from "@mui/icons-material";
 import CustomInput from "../../../components/CustomInput";
 import { isValidGST, isValidPhone } from "../../../utils/validation";
+import { SectionLoader } from "../../../components/CustomLoader";
 
 const SettingsPage: React.FC = () => {
-  const { preferences, loading: hookLoading, setMultiplePreferences, refetch } = usePreferences();
+  const {
+    preferences,
+    loading: hookLoading,
+    setMultiplePreferences,
+    refetch,
+  } = usePreferences();
   const [localPrefs, setLocalPrefs] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error",
+  });
   const [gstError, setGstError] = useState(false);
   const [phone1Error, setPhone1Error] = useState(false);
   const [phone2Error, setPhone2Error] = useState(false);
@@ -34,17 +43,29 @@ const SettingsPage: React.FC = () => {
   const handleSave = async () => {
     // Validations
     if (localPrefs.companyGSTIN && !isValidGST(localPrefs.companyGSTIN)) {
-      setSnackbar({ open: true, message: "Please enter a valid GSTIN number.", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Please enter a valid GSTIN number.",
+        severity: "error",
+      });
       setGstError(true);
       return;
     }
     if (localPrefs.companyMobile1 && !isValidPhone(localPrefs.companyMobile1)) {
-      setSnackbar({ open: true, message: "Please enter a valid primary mobile number.", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Please enter a valid primary mobile number.",
+        severity: "error",
+      });
       setPhone1Error(true);
       return;
     }
     if (localPrefs.companyMobile2 && !isValidPhone(localPrefs.companyMobile2)) {
-      setSnackbar({ open: true, message: "Please enter a valid secondary mobile number.", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Please enter a valid secondary mobile number.",
+        severity: "error",
+      });
       setPhone2Error(true);
       return;
     }
@@ -53,9 +74,17 @@ const SettingsPage: React.FC = () => {
     try {
       await setMultiplePreferences(localPrefs);
       await refetch();
-      setSnackbar({ open: true, message: "Settings saved successfully!", severity: "success" });
+      setSnackbar({
+        open: true,
+        message: "Settings saved successfully!",
+        severity: "success",
+      });
     } catch (error) {
-      setSnackbar({ open: true, message: "Failed to save settings.", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Failed to save settings.",
+        severity: "error",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -64,7 +93,7 @@ const SettingsPage: React.FC = () => {
   const handleChange = (key: string, value: string) => {
     if (key === "companyAddress" && value.length > 120) return;
 
-    setLocalPrefs(prev => ({ ...prev, [key]: value }));
+    setLocalPrefs((prev) => ({ ...prev, [key]: value }));
 
     // Real-time validation
     if (key === "companyGSTIN") {
@@ -83,11 +112,7 @@ const SettingsPage: React.FC = () => {
   }, [localPrefs, preferences]);
 
   if (hookLoading && Object.keys(localPrefs).length === 0) {
-    return (
-      <Box className="flex items-center justify-center h-64">
-        <CircularProgress />
-      </Box>
-    );
+    return <SectionLoader label="Loading settings..." />;
   }
 
   return (
@@ -115,24 +140,29 @@ const SettingsPage: React.FC = () => {
           <Grid size={{ xs: 12 }}>
             <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
               <CardContent className="flex flex-col gap-2">
-                <Typography variant="h6" className="font-semibold text-blue-600">
+                <Typography
+                  variant="h6"
+                  className="font-semibold text-blue-600"
+                >
                   Business Information
                 </Typography>
 
                 <Grid container spacing={3}>
-                  <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+                  {/* <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                     <CustomInput
                       label="Company Name"
                       value={localPrefs.companyName || ""}
                       onChange={(e) => handleChange("companyName", e.target.value)}
                       placeholder="e.g. My Clothing Store"
                     />
-                  </Grid>
+                  </Grid> */}
                   <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                     <CustomInput
                       label="Mobile Number 1"
                       value={localPrefs.companyMobile1 || ""}
-                      onChange={(e) => handleChange("companyMobile1", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("companyMobile1", e.target.value)
+                      }
                       placeholder="Primary contact"
                       error={phone1Error}
                       errorText={phone1Error ? "Invalid mobile number" : ""}
@@ -142,7 +172,9 @@ const SettingsPage: React.FC = () => {
                     <CustomInput
                       label="Mobile Number 2"
                       value={localPrefs.companyMobile2 || ""}
-                      onChange={(e) => handleChange("companyMobile2", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("companyMobile2", e.target.value)
+                      }
                       placeholder="Secondary contact"
                       error={phone2Error}
                       errorText={phone2Error ? "Invalid mobile number" : ""}
@@ -152,7 +184,9 @@ const SettingsPage: React.FC = () => {
                     <CustomInput
                       label="GSTIN"
                       value={localPrefs.companyGSTIN || ""}
-                      onChange={(e) => handleChange("companyGSTIN", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("companyGSTIN", e.target.value)
+                      }
                       placeholder="Goods and Services Tax Identification Number"
                       error={gstError}
                       errorText={gstError ? "Invalid GSTIN format" : ""}
@@ -162,7 +196,9 @@ const SettingsPage: React.FC = () => {
                     <CustomInput
                       label="Address"
                       value={localPrefs.companyAddress || ""}
-                      onChange={(e) => handleChange("companyAddress", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("companyAddress", e.target.value)
+                      }
                       placeholder="Full Business Address"
                       multiline
                       rows={2}
@@ -178,7 +214,10 @@ const SettingsPage: React.FC = () => {
           <Grid size={{ xs: 12 }}>
             <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
               <CardContent className="flex flex-col gap-2">
-                <Typography variant="h6" className="font-semibold text-blue-600">
+                <Typography
+                  variant="h6"
+                  className="font-semibold text-blue-600"
+                >
                   General Settings
                 </Typography>
 
@@ -187,14 +226,17 @@ const SettingsPage: React.FC = () => {
                     <CustomSelect
                       label="Default Invoice Type"
                       value={localPrefs.invoiceType || "a4"}
-                      onChange={(e) => handleChange("invoiceType", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("invoiceType", e.target.value)
+                      }
                       options={[
                         { value: "a4", label: "A4 Size" },
                         { value: "thermal", label: "Thermal (80mm)" },
                       ]}
                     />
                     <Typography variant="body2" className="mt-2 text-gray-500">
-                      This setting controls the default print format for new invoices in the POS.
+                      This setting controls the default print format for new
+                      invoices in the POS.
                     </Typography>
                   </Grid>
 
@@ -212,7 +254,6 @@ const SettingsPage: React.FC = () => {
                     />
                   </Grid>
                 </Grid>
-
               </CardContent>
             </Card>
           </Grid>

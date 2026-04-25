@@ -2,8 +2,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { Product, AddProductForm } from "../types/product";
-import axios from "axios";
-import { API_BASE } from "../utils/auth";
+import api from "../utils/api";
 
 interface ProductsState {
   products: Product[];
@@ -27,42 +26,42 @@ const initialState: ProductsState = {
 };
 
 function transformToCamelCase(obj: any): any {
-  if (obj === null || typeof obj !== 'object') return obj;
-  
+  if (obj === null || typeof obj !== "object") return obj;
+
   if (Array.isArray(obj)) {
     return obj.map(transformToCamelCase);
   }
-  
+
   const camelCaseObj: any = {};
   for (const key in obj) {
     const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
     camelCaseObj[camelKey] = transformToCamelCase(obj[key]);
   }
-  
+
   // Special handling for variants → variant
   if (camelCaseObj.variants) {
     camelCaseObj.variant = camelCaseObj.variants;
     delete camelCaseObj.variants;
   }
-  
+
   return camelCaseObj;
 }
 
 export const fetchProducts = createAsyncThunk(
   "products/fetchProducts",
-  async ({
-    search = "",
-    page = 1,
-    limit = 50,
-  }: { search?: string; page?: number; limit?: number } = {}) => {
+  async (
+    {
+      search = "",
+      page = 1,
+      limit = 50,
+    }: { search?: string; page?: number; limit?: number } = {},
+  ) => {
     const params = new URLSearchParams({
       ...(search && { search }),
       page: page.toString(),
       limit: limit.toString(),
     });
-    const response = await axios.get(`/v1/products?${params}`, {
-      baseURL: API_BASE,
-    });
+    const response = await api.get(`/products?${params}`);
     return {
       ...response.data,
       products: response.data.products.map((p: any) => transformToCamelCase(p)),
@@ -74,16 +73,13 @@ export const addProduct = createAsyncThunk(
   "products/addProduct",
   async (productData: AddProductForm, { rejectWithValue }) => {
     try {
-      const response = await axios.post("/v1/products", productData, {
-        baseURL: API_BASE,
-      });
+      const response = await api.post("/products", productData);
       return {
         product: transformToCamelCase(response.data.product),
       };
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.error || "Failed to add product",
-      );
+    } catch (error) {
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to add product");
     }
   },
 );
@@ -92,16 +88,13 @@ export const updateProduct = createAsyncThunk(
   "products/updateProduct",
   async (product: Partial<Product> & { id: string }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`/v1/products/${product.id}`, product, {
-        baseURL: API_BASE,
-      });
+      const response = await api.put(`/products/${product.id}`, product);
       return {
         product: transformToCamelCase(response.data.product),
       };
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.error || "Failed to update product",
-      );
+    } catch (error) {
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to update product");
     }
   },
 );
@@ -110,15 +103,12 @@ export const deleteProducts = createAsyncThunk(
   "products/deleteProducts",
   async (productIds: string[], { rejectWithValue }) => {
     try {
-      const promises = productIds.map((id) =>
-        axios.delete(`/v1/products/${id}`, { baseURL: API_BASE }),
-      );
+      const promises = productIds.map((id) => api.delete(`/products/${id}`));
       await Promise.all(promises);
       return productIds;
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.error || "Failed to delete products",
-      );
+    } catch (error) {
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to delete products");
     }
   },
 );
@@ -181,3 +171,4 @@ const productsSlice = createSlice({
 
 export const { clearError, setSelectedProducts } = productsSlice.actions;
 export default productsSlice.reducer;
+

@@ -16,6 +16,7 @@ import DeleteProductDialog from "./DeleteProductDialog";
 import type { AppDispatch } from "../../../store";
 import { DeleteOutlined, EditOutlined } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import PermissionGuard from "../../../components/PermissionGuard";
 
 const ProductsPage = () => {
   const navigate = useNavigate();
@@ -153,10 +154,11 @@ const ProductsPage = () => {
         header: "Tax Inclusive",
         Cell: ({ row }) => (
           <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${row.original.taxInclusive
+            className={`px-2 py-1 rounded-full text-xs font-medium ${
+              row.original.taxInclusive
                 ? "bg-blue-100 text-blue-800"
                 : "bg-gray-100 text-gray-800"
-              }`}
+            }`}
           >
             {row.original.taxInclusive ? "Yes" : "No"}
           </span>
@@ -167,10 +169,11 @@ const ProductsPage = () => {
         header: "Active",
         Cell: ({ row }) => (
           <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${row.original.isActive
+            className={`px-2 py-1 rounded-full text-xs font-medium ${
+              row.original.isActive
                 ? "bg-green-100 text-green-800"
                 : "bg-red-100 text-red-800"
-              }`}
+            }`}
           >
             {row.original.isActive ? "Yes" : "No"}
           </span>
@@ -267,18 +270,20 @@ const ProductsPage = () => {
     <div className="flex flex-col w-full space-y-4 p-3 overflow-y-auto">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-800">Products</h1>
-        <ButtonGroup variant="contained">
-          <CustomButton
-            variant="contained"
-            onClick={() => navigate("/products/add-product")}
-            startIcon={<AddIcon />}
-          >
-            Add Product
-          </CustomButton>
-          <CustomButton onClick={handleBulkUpload}>
-            <UploadFileIcon />
-          </CustomButton>
-        </ButtonGroup>
+        <PermissionGuard module="Inventory" action="create">
+          <ButtonGroup variant="contained">
+            <CustomButton
+              variant="contained"
+              onClick={() => navigate("/products/add-product")}
+              startIcon={<AddIcon />}
+            >
+              Add Product
+            </CustomButton>
+            <CustomButton onClick={handleBulkUpload}>
+              <UploadFileIcon />
+            </CustomButton>
+          </ButtonGroup>
+        </PermissionGuard>
       </div>
 
       {error && (
@@ -299,53 +304,59 @@ const ProductsPage = () => {
         enableRowActions
         renderRowActions={({ row }) => (
           <div className="flex gap-1">
-            <IconButton
-              onClick={() =>
-                navigate(`/products/edit-product/${row.original.id}`)
-              }
-              size="small"
-              sx={{
-                border: "1px solid",
-                borderColor: "primary.main",
-                color: "primary.main",
-                borderRadius: 1,
-                width: 36,
-                height: 36,
-              }}
-            >
-              <EditOutlined fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => {
-                setSelectedProductId(row.original.id);
-                setOpenDeleteDialog(true);
-              }}
-              sx={{
-                border: 1,
-                borderColor: "error.main",
-                borderRadius: 1,
-                color: "error.main",
-                width: 36,
-                height: 36,
-              }}
-            >
-              <DeleteOutlined fontSize="small" />
-            </IconButton>
+            <PermissionGuard module="Inventory" action="update">
+              <IconButton
+                onClick={() =>
+                  navigate(`/products/edit-product/${row.original.id}`)
+                }
+                size="small"
+                sx={{
+                  border: "1px solid",
+                  borderColor: "primary.main",
+                  color: "primary.main",
+                  borderRadius: 1,
+                  width: 36,
+                  height: 36,
+                }}
+              >
+                <EditOutlined fontSize="small" />
+              </IconButton>
+            </PermissionGuard>
+            <PermissionGuard module="Inventory" action="delete">
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setSelectedProductId(row.original.id);
+                  setOpenDeleteDialog(true);
+                }}
+                sx={{
+                  border: 1,
+                  borderColor: "error.main",
+                  borderRadius: 1,
+                  color: "error.main",
+                  width: 36,
+                  height: 36,
+                }}
+              >
+                <DeleteOutlined fontSize="small" />
+              </IconButton>
+            </PermissionGuard>
           </div>
         )}
         renderTopToolbarCustomActions={({ table }) => {
           const selectedRows = table.getSelectedRowModel().rows;
           return selectedRows.length > 0 ? (
-            <CustomButton
-              variant="contained"
-              className="bg-red-500! hover:bg-red-600! text-white"
-              size="small"
-              onClick={() => handleBulkDelete({ table })}
-              startIcon={<DeleteIcon />}
-            >
-              Delete Selected ({selectedRows.length})
-            </CustomButton>
+            <PermissionGuard module="Inventory" action="delete">
+              <CustomButton
+                variant="contained"
+                className="bg-red-500! hover:bg-red-600! text-white"
+                size="small"
+                onClick={() => handleBulkDelete({ table })}
+                startIcon={<DeleteIcon />}
+              >
+                Delete Selected ({selectedRows.length})
+              </CustomButton>
+            </PermissionGuard>
           ) : null;
         }}
       />

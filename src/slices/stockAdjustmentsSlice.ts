@@ -1,11 +1,10 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
 import type {
   StockAdjustment,
   StockAdjustmentsState,
   BatchForAdjustment,
 } from "../types/stockAdjustment";
-import { API_BASE } from "../utils/auth";
+import api from "../utils/api";
 import { camelToSnake, snakeToCamel } from "../utils/caseConvert";
 
 interface StockAdjustmentsStateExtended extends StockAdjustmentsState {
@@ -25,12 +24,11 @@ export const fetchStockAdjustments = createAsyncThunk(
   "stockAdjustments/fetchStockAdjustments",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/v1/stock-adjustments`, {
-        baseURL: API_BASE,
-      });
+      const response = await api.get(`/stock-adjustments`);
       return snakeToCamel(response.data) as StockAdjustment[];
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error || "Failed to fetch adjustments");
+    } catch (error) {
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to fetch adjustments");
     }
   },
 );
@@ -39,12 +37,11 @@ export const fetchBatchesForAdjustment = createAsyncThunk(
   "stockAdjustments/fetchBatchesForAdjustment",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/v1/stock-adjustments/batches`, {
-        baseURL: API_BASE,
-      });
+      const response = await api.get(`/stock-adjustments/batches`);
       return snakeToCamel(response.data) as BatchForAdjustment[];
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error || "Failed to fetch batches");
+    } catch (error) {
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to fetch batches");
     }
   },
 );
@@ -53,16 +50,15 @@ export const createStockAdjustment = createAsyncThunk(
   "stockAdjustments/createStockAdjustment",
   async (
     adjustment: Omit<StockAdjustment, "id" | "createdAt">,
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const snakeData = camelToSnake(adjustment);
-      const response = await axios.post(`/v1/stock-adjustments`, snakeData, {
-        baseURL: API_BASE,
-      });
+      const response = await api.post(`/stock-adjustments`, snakeData);
       return snakeToCamel(response.data.adjustment) as StockAdjustment;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error || "Failed to create adjustment");
+    } catch (error) {
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to create adjustment");
     }
   },
 );
@@ -112,3 +108,4 @@ const stockAdjustmentsSlice = createSlice({
 
 export const { clearError } = stockAdjustmentsSlice.actions;
 export default stockAdjustmentsSlice.reducer;
+

@@ -32,4 +32,6 @@ export interface UpdateBatchForm {
   mrp?: number;
   manufactureDate?: string;
   expiryDate?: string;
+  batchNo?: string;
+  barcode?: string;
 }

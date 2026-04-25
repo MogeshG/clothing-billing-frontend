@@ -1,26 +1,41 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import api from "../../utils/api";
 import { setToken } from "../../utils/auth";
+import { setAuthenticated, setUser } from "../../slices/appSlice";
 
 const Login = () => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     try {
-      const token = "fake-jwt-token-" + Date.now();
+      const response = await api.post("/auth/login", { phone, password });
+      const { token, user } = response.data;
+
       setToken(token);
+      dispatch(setAuthenticated({ isAuthenticated: true, user }));
+      dispatch(setUser(user));
       navigate("/dashboard");
     } catch (err) {
-      setError("Login failed. Please check your credentials.");
-      console.error(err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Login failed. Please check your credentials.";
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,10 +48,6 @@ const Login = () => {
           <p className="text-lg text-indigo-100 text-center">
             Simplifying your workflow with secure and modern solutions.
           </p>
-
-          <div className="mt-6 text-sm text-indigo-200 text-center">
-            Trusted by thousands of users worldwide.
-          </div>
         </div>
 
         {/* RIGHT SIDE - Login Form */}
@@ -95,18 +106,11 @@ const Login = () => {
             {/* Button */}
             <button
               type="submit"
-              className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition duration-200 font-semibold"
+              disabled={loading}
+              className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition duration-200 font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Login
+              {loading ? "Logging in..." : "Login"}
             </button>
-
-            {/* Footer */}
-            <p className="text-sm text-center text-gray-500">
-              Forgot password?{" "}
-              <span className="text-indigo-600 cursor-pointer hover:underline">
-                Reset here
-              </span>
-            </p>
           </form>
         </div>
       </div>

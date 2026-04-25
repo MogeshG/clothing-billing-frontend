@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
-import { API_BASE } from "../utils/auth";
+import api from "../utils/api";
 
 export type Period = "today" | "week" | "month" | "year" | "all" | "custom";
 
@@ -39,22 +38,31 @@ export interface PaymentBreakdown {
 }
 
 export interface DateRange {
-  startDate: string;  // ISO date string YYYY-MM-DD
+  startDate: string; // ISO date string YYYY-MM-DD
   endDate: string;
 }
 
-export const useAnalytics = (period: Period = "month", customRange?: DateRange) => {
+export const useAnalytics = (
+  period: Period = "month",
+  customRange?: DateRange,
+) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [salesReport, setSalesReport] = useState<SalesReportItem[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [lowStock, setLowStock] = useState<LowStockItem[]>([]);
-  const [paymentBreakdown, setPaymentBreakdown] = useState<PaymentBreakdown[]>([]);
+  const [paymentBreakdown, setPaymentBreakdown] = useState<PaymentBreakdown[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAnalytics = useCallback(async () => {
     // Don't fetch custom range if dates are incomplete
-    if (period === "custom" && (!customRange?.startDate || !customRange?.endDate)) return;
+    if (
+      period === "custom" &&
+      (!customRange?.startDate || !customRange?.endDate)
+    )
+      return;
 
     try {
       setLoading(true);
@@ -65,11 +73,11 @@ export const useAnalytics = (period: Period = "month", customRange?: DateRange) 
       }
 
       const [statsRes, salesRes, topRes, lowRes, payRes] = await Promise.all([
-        axios.get(`${API_BASE}/v1/analytics/stats`, { params }),
-        axios.get(`${API_BASE}/v1/analytics/sales-report`, { params }),
-        axios.get(`${API_BASE}/v1/analytics/top-products`, { params }),
-        axios.get(`${API_BASE}/v1/analytics/low-stock`),
-        axios.get(`${API_BASE}/v1/analytics/payment-breakdown`, { params }),
+        api.get(`/analytics/stats`, { params }),
+        api.get(`/analytics/sales-report`, { params }),
+        api.get(`/analytics/top-products`, { params }),
+        api.get(`/analytics/low-stock`),
+        api.get(`/analytics/payment-breakdown`, { params }),
       ]);
 
       setStats(statsRes.data);
@@ -78,8 +86,9 @@ export const useAnalytics = (period: Period = "month", customRange?: DateRange) 
       setLowStock(lowRes.data);
       setPaymentBreakdown(payRes.data);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch analytics");
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message || "Failed to fetch analytics");
     } finally {
       setLoading(false);
     }
@@ -89,5 +98,14 @@ export const useAnalytics = (period: Period = "month", customRange?: DateRange) 
     fetchAnalytics();
   }, [fetchAnalytics]);
 
-  return { stats, salesReport, topProducts, lowStock, paymentBreakdown, loading, error, refetch: fetchAnalytics };
+  return {
+    stats,
+    salesReport,
+    topProducts,
+    lowStock,
+    paymentBreakdown,
+    loading,
+    error,
+    refetch: fetchAnalytics,
+  };
 };

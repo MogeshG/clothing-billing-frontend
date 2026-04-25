@@ -4,8 +4,7 @@ import type {
   ProductCategory,
   AddProductCategoryForm,
 } from "../types/productCategory";
-import axios from "axios";
-import { API_BASE } from "../utils/auth";
+import api from "../utils/api";
 
 interface ProductCategoriesState {
   productCategories: ProductCategory[];
@@ -24,9 +23,7 @@ const initialState: ProductCategoriesState = {
 export const fetchProductCategories = createAsyncThunk(
   "productCategories/fetchProductCategories",
   async () => {
-    const response = await axios.get(`/v1/categories`, {
-      baseURL: API_BASE,
-    });
+    const response = await api.get(`/categories`);
     return response.data;
   },
 );
@@ -38,14 +35,11 @@ export const addProductCategory = createAsyncThunk(
     { rejectWithValue },
   ): Promise<ProductCategory> => {
     try {
-      const response = await axios.post("/v1/categories", categoryData, {
-        baseURL: API_BASE,
-      });
+      const response = await api.post("/categories", categoryData);
       return response.data.category;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.error || "Failed to add category",
-      );
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to add category") as never;
     }
   },
 );
@@ -57,18 +51,13 @@ export const updateProductCategory = createAsyncThunk(
     { rejectWithValue },
   ): Promise<ProductCategory> => {
     try {
-      const response = await axios.put(
-        `/v1/categories/${category.id}`,
-        category,
-        {
-          baseURL: API_BASE,
-        },
-      );
+      const response = await api.put(`/categories/${category.id}`, category);
       return response.data.category;
     } catch (error) {
+      const err = error as Error;
       return rejectWithValue(
-        error.response?.data?.error || "Failed to update category",
-      );
+        err.message || "Failed to update category",
+      ) as never;
     }
   },
 );
@@ -77,15 +66,12 @@ export const deleteProductCategories = createAsyncThunk(
   "productCategories/deleteProductCategories",
   async (ids: string[], { rejectWithValue }) => {
     try {
-      const promises = ids.map((id) =>
-        axios.delete(`/v1/categories/${id}`, { baseURL: API_BASE }),
-      );
+      const promises = ids.map((id) => api.delete(`/categories/${id}`));
       await Promise.all(promises);
       return ids;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.error || "Failed to delete categories",
-      );
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to delete categories");
     }
   },
 );
@@ -98,14 +84,15 @@ export const bulkCreateProductCategories = createAsyncThunk(
   ): Promise<ProductCategory[]> => {
     try {
       const promises = categories.map((categoryData) =>
-        axios.post("/v1/categories", categoryData, { baseURL: API_BASE }),
+        api.post("/categories", categoryData),
       );
       const responses = await Promise.all(promises);
       return responses.map((res) => res.data.category);
     } catch (error) {
+      const err = error as Error;
       return rejectWithValue(
-        error.response?.data?.error || "Failed to bulk create categories",
-      );
+        err.message || "Failed to bulk create categories",
+      ) as never;
     }
   },
 );
@@ -196,3 +183,4 @@ const productCategoriesSlice = createSlice({
 export const { setSelectedProductCategories, clearError } =
   productCategoriesSlice.actions;
 export default productCategoriesSlice.reducer;
+

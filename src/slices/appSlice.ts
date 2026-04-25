@@ -1,6 +1,24 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = {
+interface User {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  permissions: Record<string, unknown>;
+  createdAt: string | null;
+  updatedAt: string | null;
+}    
+
+interface AppState {
+  companyName: string;
+  sideBarCollapsed: boolean;
+  isAuthenticated: boolean;
+  authLoading: boolean;
+  user: User | null;
+}
+
+const initialState: AppState = {
   companyName: "Billing",
   sideBarCollapsed: false,
   isAuthenticated: false,
@@ -22,6 +40,9 @@ const appSlice = createSlice({
       state.isAuthenticated = action.payload.isAuthenticated;
       state.user = action.payload.user || null;
     },
+    setUser: (state, action) => {
+      state.user = action.payload;
+    },
     logout: (state) => {
       state.isAuthenticated = false;
       state.user = null;
@@ -29,7 +50,13 @@ const appSlice = createSlice({
   },
 });
 
-export const { setSideBarCollapsed, setAuthLoading, setAuthenticated, logout } =
-  appSlice.actions;
+export const {
+  setSideBarCollapsed,
+  setAuthLoading,
+  setAuthenticated,
+  setUser,
+  logout,
+} = appSlice.actions;
 
 export default appSlice.reducer;
+

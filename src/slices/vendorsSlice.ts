@@ -2,8 +2,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { Vendor, AddVendorForm } from "../types/vendor";
-import axios from "axios";
-import { API_BASE } from "../utils/auth";
+import api from "../utils/api";
 
 interface VendorsState {
   vendors: Vendor[];
@@ -38,9 +37,7 @@ export const fetchVendors = createAsyncThunk(
       page: page.toString(),
       limit: limit.toString(),
     });
-    const response = await axios.get(`/v1/vendors?${params}`, {
-      baseURL: API_BASE,
-    });
+    const response = await api.get(`/vendors?${params}`);
     return response.data;
   },
 );
@@ -49,9 +46,7 @@ export const addVendor = createAsyncThunk(
   "vendors/addVendor",
   async (vendorData: AddVendorForm, { rejectWithValue }) => {
     try {
-      const response = await axios.post("/v1/vendors", vendorData, {
-        baseURL: API_BASE,
-      });
+      const response = await api.post("/v1/vendors", vendorData);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(
@@ -65,9 +60,7 @@ export const updateVendor = createAsyncThunk(
   "vendors/updateVendor",
   async (vendor: Partial<Vendor> & { id: string }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`/v1/vendors/${vendor.id}`, vendor, {
-        baseURL: API_BASE,
-      });
+      const response = await api.put(`/v1/vendors/${vendor.id}`, vendor);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(
@@ -81,13 +74,13 @@ export const deleteVendors = createAsyncThunk(
   "vendors/deleteVendors",
   async (vendorIds: string[], { rejectWithValue }) => {
     try {
-      const promises = vendorIds.map((id) =>
-        axios.delete(`/v1/vendors/${id}`, { baseURL: API_BASE }),
-      );
+      const promises = vendorIds.map((id) => api.delete(`/v1/vendors/${id}`));
       await Promise.all(promises);
       return vendorIds;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error ||"Failed to delete vendors");
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to delete vendors",
+      );
     }
   },
 );

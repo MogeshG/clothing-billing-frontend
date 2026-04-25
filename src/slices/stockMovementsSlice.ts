@@ -1,8 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
 import type { StockMovement } from "../types/stockMovement";
 import { snakeToCamel } from "../utils/caseConvert";
-import { API_BASE } from "../utils/auth";
+import api from "../utils/api";
 
 interface StockMovementsState {
   stockMovements: StockMovement[];
@@ -20,18 +19,16 @@ export const fetchStockMovements = createAsyncThunk(
   "stockMovements/fetchStockMovements",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/v1/stock-movements`, {
-        baseURL: API_BASE,
+      const response = await api.get(`/stock-movements`, {
         params: { limit: 200 },
       });
       const raw = response.data.stock_movements ?? response.data;
       return snakeToCamel(raw) as StockMovement[];
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.error || "Failed to fetch stock movements"
-      );
+    } catch (error) {
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to fetch stock movements");
     }
-  }
+  },
 );
 
 const stockMovementsSlice = createSlice({
@@ -54,7 +51,8 @@ const stockMovementsSlice = createSlice({
       })
       .addCase(fetchStockMovements.rejected, (state, action) => {
         state.loading = false;
-        state.error = (action.payload as string) || "Failed to fetch stock movements";
+        state.error =
+          (action.payload as string) || "Failed to fetch stock movements";
       });
   },
 });

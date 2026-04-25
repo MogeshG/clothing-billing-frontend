@@ -1,10 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useDispatch } from "react-redux";
-import { Alert, CircularProgress, Grid, IconButton, Snackbar, Typography } from "@mui/material";
+import {
+  Alert,
+  CircularProgress,
+  Grid,
+  IconButton,
+  Snackbar,
+  Typography,
+} from "@mui/material";
 import { useInvoices } from "../../../hooks/useInvoices";
 import { usePreferences } from "../../../hooks/usePreferences";
-import { API_BASE } from "../../../utils/auth";
 import {
   Dialog,
   DialogTitle,
@@ -17,7 +23,7 @@ import {
 import AddCustomerDialog from "../customers/AddCustomerDialog";
 import type { Invoice } from "../../../types/invoice";
 
-import { useCustomers, } from "../../../hooks/useCustomers";
+import { useCustomers } from "../../../hooks/useCustomers";
 import type { AddInvoiceForm } from "../../../types/invoice";
 import type { Batch } from "../../../types/batch";
 import CustomInput from "../../../components/CustomInput";
@@ -35,28 +41,35 @@ import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import formatRupee from "../../../utils/formatRupee";
 import CustomSelect from "../../../components/CustomSelect";
-import {
-  AddCircleOutlineOutlined,
-} from "@mui/icons-material";
+import { AddCircleOutlineOutlined } from "@mui/icons-material";
 import { fetchCustomers } from "../../../slices/customersSlice";
+import PermissionGuard from "../../../components/PermissionGuard";
+import { SectionLoader } from "../../../components/CustomLoader";
 
 const POSPage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const {
     drafts,
     error: invoicesError,
+    billHtml: reduxBillHtml,
     addInvoice,
     createDraftInvoice,
     finalizeInvoice,
     updateDraftInvoice,
     clearError,
-    deleteInvoice
+    deleteInvoice,
+    generateBill,
+    clearBillHtml,
   } = useInvoices();
   const { preferences } = usePreferences();
   const { customers } = useCustomers();
   // Customer Creation State
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
-  const { activeBatches, loading: batchesLoading, refetch: refetchBatches } = useBatches();
+  const {
+    activeBatches,
+    loading: batchesLoading,
+    refetch: refetchBatches,
+  } = useBatches();
   const [batchSearch, setBatchSearch] = useState("");
   const [formData, setFormData] = useState<Partial<AddInvoiceForm>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -72,7 +85,6 @@ const POSPage = () => {
   const [showDrafts, setShowDrafts] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [showBillModal, setShowBillModal] = useState(false);
-  const [billHtml, setBillHtml] = useState("");
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -111,9 +123,11 @@ const POSPage = () => {
 
   // Auto-print when bill is loaded
   useEffect(() => {
-    if (billHtml && showBillModal) {
+    if (reduxBillHtml && showBillModal) {
       const timer = setTimeout(() => {
-        const iframe = document.querySelector('iframe[title="Bill Preview"]') as HTMLIFrameElement;
+        const iframe = document.querySelector(
+          'iframe[title="Bill Preview"]',
+        ) as HTMLIFrameElement;
         if (iframe && iframe.contentWindow) {
           iframe.contentWindow.focus();
           iframe.contentWindow.print();
@@ -121,22 +135,25 @@ const POSPage = () => {
       }, 800); // Wait for content to render
       return () => clearTimeout(timer);
     }
-  }, [billHtml, showBillModal]);
+  }, [reduxBillHtml, showBillModal]);
 
   const filteredBatches = useMemo(() => {
     return activeBatches
       .filter(
         (batch: Batch) =>
-          (batch.productName.toLowerCase().includes(batchSearch.toLowerCase()) ||
+          (batch.productName
+            .toLowerCase()
+            .includes(batchSearch.toLowerCase()) ||
             batch.batchNo.toLowerCase().includes(batchSearch.toLowerCase()) ||
             batch.barcode.toLowerCase().includes(batchSearch.toLowerCase())) &&
-          batch.remainingQuantity > 0
+          batch.remainingQuantity > 0,
       )
       .map((batch: Batch) => {
         const itemInCart = items.find((item) => item.batchNo === batch.batchNo);
         return {
           ...batch,
-          remainingQuantity: batch.remainingQuantity - (itemInCart?.quantity || 0),
+          remainingQuantity:
+            batch.remainingQuantity - (itemInCart?.quantity || 0),
         };
       })
       .slice(0, 10);
@@ -144,10 +161,10 @@ const POSPage = () => {
 
   const handleAddBatch = useCallback((batch: Batch, qty: number) => {
     const itemInCart = items.find((item) => item.batchNo === batch.batchNo);
-    const totalAvailable = batch.remainingQuantity + (itemInCart?.quantity || 0);
+    const totalAvailable =
+      batch.remainingQuantity + (itemInCart?.quantity || 0);
 
-    if (qty < 0 || qty > totalAvailable || !Number.isFinite(qty))
-      return;
+    if (qty < 0 || qty > totalAvailable || !Number.isFinite(qty)) return;
 
     const newItem: ItemForm = {
       productName: batch.productName,
@@ -176,9 +193,10 @@ const POSPage = () => {
       if (qty === 0) {
         return prevItems.filter((item) => item.batchNo !== batch.batchNo);
       }
-      const idx = prevItems.findIndex((item) =>
-        (item.batchNo && item.batchNo === batch.batchNo) ||
-        (!item.batchNo && item.variantSku === batch.variantSku)
+      const idx = prevItems.findIndex(
+        (item) =>
+          (item.batchNo && item.batchNo === batch.batchNo) ||
+          (!item.batchNo && item.variantSku === batch.variantSku),
       );
       if (idx >= 0) {
         const updated = [...prevItems];
@@ -187,12 +205,14 @@ const POSPage = () => {
       }
       return [...prevItems, newItem];
     });
-  }, []);
+  }, [items]);
 
   const [billDiscount, setBillDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [amountPaid, setAmountPaid] = useState(0);
-  const [invoiceType, setInvoiceType] = useState<"a4" | "thermal">(preferences.invoiceType as any || "a4");
+  const [invoiceType, setInvoiceType] = useState<"a4" | "thermal">(
+    (preferences.invoiceType as any) || "a4",
+  );
 
   // Update invoiceType when preferences are loaded
   useEffect(() => {
@@ -205,13 +225,18 @@ const POSPage = () => {
     const subTotal = items.reduce((sum, item) => {
       const lineAmount = item.price * item.quantity - item.discount;
       if (item.taxInclusive) {
-        return sum + lineAmount / (1 + (Number(item.cgstPercent) + Number(item.sgstPercent)) / 100);
+        return (
+          sum +
+          lineAmount /
+            (1 + (Number(item.cgstPercent) + Number(item.sgstPercent)) / 100)
+        );
       }
       return sum + lineAmount;
     }, 0);
     const taxTotal = items.reduce((sum, item) => {
       const lineAmount = item.price * item.quantity - item.discount;
-      const taxRate = (Number(item.cgstPercent) + Number(item.sgstPercent)) / 100;
+      const taxRate =
+        (Number(item.cgstPercent) + Number(item.sgstPercent)) / 100;
       if (item.taxInclusive) {
         const base = lineAmount / (1 + taxRate);
         return sum + base * taxRate;
@@ -281,7 +306,9 @@ const POSPage = () => {
     });
     setItems(
       draft.items.map((invItem) => {
-        const batchDetails = activeBatches.find((b) => b.batchNo === invItem.batchNo);
+        const batchDetails = activeBatches.find(
+          (b) => b.batchNo === invItem.batchNo,
+        );
         return {
           productName: invItem.productName,
           variantSku: invItem.variantSku || "",
@@ -319,13 +346,8 @@ const POSPage = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE}/v1/invoices/${id}/bill?type=${invoiceType}`);
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-      const result = await response.json();
-      if (result.html) {
-        setBillHtml(result.html);
-        setShowBillModal(true);
-      }
+      await dispatch(generateBill({ id, type: invoiceType })).unwrap();
+      setShowBillModal(true);
     } catch (err) {
       console.error("Generate bill failed:", err);
     } finally {
@@ -436,8 +458,6 @@ const POSPage = () => {
     }
   };
 
-
-
   useEffect(() => {
     dispatch(fetchCustomers());
   }, [dispatch]);
@@ -481,7 +501,9 @@ const POSPage = () => {
                   data={customers}
                   value={selectedCustomer}
                   getLabel={(c: Customer) => `${c.name} (${c.phone})`}
-                  onSelect={(item) => item && handleCustomerSelect(item as Customer)}
+                  onSelect={(item) =>
+                    item && handleCustomerSelect(item as Customer)
+                  }
                   placeholder="Search customer by name/phone..."
                   actionOption={() => ({
                     label: "Add new customer",
@@ -526,9 +548,7 @@ const POSPage = () => {
                 />
 
                 {batchesLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <span>Loading batches...</span>
-                  </div>
+                  <SectionLoader label="Loading batches..." />
                 ) : filteredBatches.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     No batches found. Try different search.
@@ -612,8 +632,10 @@ const POSPage = () => {
                             max={
                               (activeBatches.find(
                                 (bt) =>
-                                  (item.batchNo && bt.batchNo === item.batchNo) ||
-                                  (!item.batchNo && bt.variantSku === item.variantSku),
+                                  (item.batchNo &&
+                                    bt.batchNo === item.batchNo) ||
+                                  (!item.batchNo &&
+                                    bt.variantSku === item.variantSku),
                               )?.remainingQuantity || 0) + item.quantity
                             }
                             onChange={(val) =>
@@ -752,86 +774,117 @@ const POSPage = () => {
             <CustomButton
               onClick={handleReset}
               variant="outlined"
-
               disabled={isSubmitting}
             >
               Clear
             </CustomButton>
-            <CustomButton
-              onClick={() => {
-                if (!validateForm("DRAFT")) return;
-                const submitData: AddInvoiceForm = {
-                  status: "DRAFT" as const,
-                  customerName: selectedCustomer?.name || formData.customerName?.trim() || "Walk-in",
-                  customerPhone: selectedCustomer?.phone || formData.customerPhone?.trim() || "",
-                  customerEmail: selectedCustomer?.email || formData.customerEmail?.trim() || "",
-                  customerAddress: selectedCustomer?.address || formData.customerAddress?.trim() || "",
-                  invoiceDate: formData.invoiceDate || dayjs().format("YYYY-MM-DD"),
-                  paymentMethod: paymentMethod || "CASH",
-                  discount: billDiscount,
-                  paidAmount: amountPaid,
-                  items: items.map((item) => ({
-                    productName: item.productName,
-                    productSku: item.barcode,
-                    variantSku: item.variantSku,
-                    hsnCode: item.hsnCode,
-                    quantity: item.quantity,
-                    price: item.price,
-                    discount: item.discount,
-                    cgstPercent: item.cgstPercent,
-                    sgstPercent: item.sgstPercent,
-                    igstPercent: item.igstPercent,
-                    taxInclusive: item.taxInclusive,
-                  })),
-                };
+            <PermissionGuard module="Sales" action="create">
+              <CustomButton
+                onClick={() => {
+                  if (!validateForm("DRAFT")) return;
+                  const submitData: AddInvoiceForm = {
+                    status: "DRAFT" as const,
+                    customerName:
+                      selectedCustomer?.name ||
+                      formData.customerName?.trim() ||
+                      "Walk-in",
+                    customerPhone:
+                      selectedCustomer?.phone ||
+                      formData.customerPhone?.trim() ||
+                      "",
+                    customerEmail:
+                      selectedCustomer?.email ||
+                      formData.customerEmail?.trim() ||
+                      "",
+                    customerAddress:
+                      selectedCustomer?.address ||
+                      formData.customerAddress?.trim() ||
+                      "",
+                    invoiceDate:
+                      formData.invoiceDate || dayjs().format("YYYY-MM-DD"),
+                    paymentMethod: paymentMethod || "CASH",
+                    discount: billDiscount,
+                    paidAmount: amountPaid,
+                    items: items.map((item) => ({
+                      productName: item.productName,
+                      productSku: item.barcode,
+                      variantSku: item.variantSku,
+                      hsnCode: item.hsnCode,
+                      quantity: item.quantity,
+                      price: item.price,
+                      discount: item.discount,
+                      cgstPercent: item.cgstPercent,
+                      sgstPercent: item.sgstPercent,
+                      igstPercent: item.igstPercent,
+                      taxInclusive: item.taxInclusive,
+                    })),
+                  };
 
-                const action = currentDraftId
-                  ? dispatch(updateDraftInvoice({ id: currentDraftId, invoiceData: submitData }))
-                  : dispatch(createDraftInvoice(submitData as AddInvoiceForm));
+                  const action = currentDraftId
+                    ? dispatch(
+                        updateDraftInvoice({
+                          id: currentDraftId,
+                          invoiceData: submitData,
+                        }),
+                      )
+                    : dispatch(createDraftInvoice(submitData as AddInvoiceForm));
 
-                action.unwrap()
-                  .then(() => {
-                    showMessage(currentDraftId ? "Draft updated!" : "Draft saved!");
-                    handleReset();
-                  })
-                  .catch((err) => showMessage(`Error: ${err.message}`, "error"));
-              }}
-              variant="outlined"
-              disabled={items.length === 0 || isSubmitting}
-            >
-              Save Draft
-            </CustomButton>
-            <CustomButton
-              onClick={() => handleSubmit()}
-              variant="contained"
-              disabled={items.length === 0 || isSubmitting}
-            >
-              {isSubmitting ? "Processing..." : "Checkout & Print"}
-            </CustomButton>
+                  action
+                    .unwrap()
+                    .then(() => {
+                      showMessage(
+                        currentDraftId ? "Draft updated!" : "Draft saved!",
+                      );
+                      handleReset();
+                    })
+                    .catch((err) =>
+                      showMessage(`Error: ${err.message}`, "error"),
+                    );
+                }}
+                variant="outlined"
+                disabled={items.length === 0 || isSubmitting}
+              >
+                Save Draft
+              </CustomButton>
+            </PermissionGuard>
+            <PermissionGuard module="Sales" action="create">
+              <CustomButton
+                onClick={() => handleSubmit()}
+                variant="contained"
+                disabled={items.length === 0 || isSubmitting}
+              >
+                {isSubmitting ? "Processing..." : "Checkout & Print"}
+              </CustomButton>
+            </PermissionGuard>
           </div>
           <Dialog
             open={showBillModal}
             onClose={() => {
               setShowBillModal(false);
-              setBillHtml("");
+              dispatch(clearBillHtml());
             }}
             maxWidth={invoiceType === "thermal" ? "xs" : "md"}
             fullWidth
-            PaperProps={{
-              sx: {
-                borderRadius: 2,
-                minHeight: invoiceType === "thermal" ? "600px" : "80vh",
-              }
+            slotProps={{
+              paper: {
+                sx: {
+                  borderRadius: 2,
+                  minHeight: invoiceType === "thermal" ? "600px" : "80vh",
+                },
+              },
             }}
           >
             <DialogTitle className="flex justify-between items-center bg-gray-50 border-b p-4">
               <Typography variant="h6" className="font-bold text-blue-800">
-                Bill Preview ({invoiceType === "thermal" ? "Thermal" : "A4 Size"})
+                Bill Preview (
+                {invoiceType === "thermal" ? "Thermal" : "A4 Size"})
               </Typography>
               <div className="flex gap-2">
                 <CustomButton
                   onClick={() => {
-                    const iframe = document.querySelector('iframe[title="Bill Preview"]') as HTMLIFrameElement;
+                    const iframe = document.querySelector(
+                      'iframe[title="Bill Preview"]',
+                    ) as HTMLIFrameElement;
                     if (iframe && iframe.contentWindow) {
                       iframe.contentWindow.focus();
                       iframe.contentWindow.print();
@@ -853,10 +906,12 @@ const POSPage = () => {
               </div>
             </DialogTitle>
             <DialogContent className="p-0 bg-gray-100 flex justify-center">
-              {billHtml ? (
-                <div className={`w-full h-full flex justify-center ${invoiceType === "thermal" ? "p-4" : "p-8"}`}>
+              {reduxBillHtml ? (
+                <div
+                  className={`w-full h-full flex justify-center ${invoiceType === "thermal" ? "p-4" : "p-8"}`}
+                >
                   <iframe
-                    srcDoc={billHtml}
+                    srcDoc={reduxBillHtml}
                     className="shadow-2xl bg-white"
                     style={{
                       width: invoiceType === "thermal" ? "400px" : "100%",
@@ -870,7 +925,10 @@ const POSPage = () => {
               ) : (
                 <div className="flex flex-col items-center justify-center h-96 gap-4">
                   <CircularProgress size={40} />
-                  <Typography variant="body1" className="text-gray-500 animate-pulse">
+                  <Typography
+                    variant="body1"
+                    className="text-gray-500 animate-pulse"
+                  >
                     Preparing your bill...
                   </Typography>
                 </div>
@@ -900,11 +958,22 @@ const POSPage = () => {
                           color="error"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (window.confirm("Are you sure you want to delete this draft?")) {
+                            if (
+                              window.confirm(
+                                "Are you sure you want to delete this draft?",
+                              )
+                            ) {
                               dispatch(deleteInvoice(draft.id))
                                 .unwrap()
-                                .then(() => showMessage("Draft deleted successfully"))
-                                .catch((err) => showMessage(`Failed to delete draft: ${err.message}`, "error"));
+                                .then(() =>
+                                  showMessage("Draft deleted successfully"),
+                                )
+                                .catch((err) =>
+                                  showMessage(
+                                    `Failed to delete draft: ${err.message}`,
+                                    "error",
+                                  ),
+                                );
                               if (currentDraftId === draft.id) {
                                 handleReset();
                               }
@@ -914,7 +983,10 @@ const POSPage = () => {
                           <DeleteIcon />
                         </IconButton>
                       }
-                      sx={{ cursor: "pointer", "&:hover": { backgroundColor: "#f5f5f5" } }}
+                      sx={{
+                        cursor: "pointer",
+                        "&:hover": { backgroundColor: "#f5f5f5" },
+                      }}
                       onClick={() => handleLoadDraft(draft)}
                     >
                       <ListItemText
@@ -927,7 +999,9 @@ const POSPage = () => {
               )}
             </DialogContent>
             <DialogActions>
-              <CustomButton onClick={() => setShowDrafts(false)}>Close</CustomButton>
+              <CustomButton onClick={() => setShowDrafts(false)}>
+                Close
+              </CustomButton>
             </DialogActions>
           </Dialog>
           <Snackbar
@@ -946,8 +1020,8 @@ const POSPage = () => {
             </Alert>
           </Snackbar>
         </form>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 };
 

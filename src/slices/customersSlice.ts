@@ -2,8 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 import type { Customer } from "../types/customer";
-import axios from "axios";
-import { API_BASE } from "../utils/auth";
+import api from "../utils/api";
 
 interface CustomersState {
   customers: Customer[];
@@ -23,7 +22,7 @@ const initialState: CustomersState = {
 export const fetchCustomers = createAsyncThunk(
   "customers/fetchCustomers",
   async () => {
-    const response = await axios.get("/v1/customers", { baseURL: API_BASE });
+    const response = await api.get("/customers");
     return response.data as Customer[];
   },
 );
@@ -35,15 +34,12 @@ export const addCustomer = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      await axios.post("/v1/customers", customer, {
-        baseURL: API_BASE,
-      });
-      const response = await axios.get("/v1/customers", { baseURL: API_BASE });
+      await api.post("/customers", customer);
+      const response = await api.get("/customers");
       return response.data as Customer[];
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.error || "Failed to add customer",
-      );
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to add customer");
     }
   },
 );
@@ -52,15 +48,12 @@ export const updateCustomer = createAsyncThunk(
   "customers/updateCustomer",
   async (customer: Customer, { rejectWithValue }) => {
     try {
-      await axios.put(`/v1/customers/${customer.id}`, customer, {
-        baseURL: API_BASE,
-      });
-      const response = await axios.get("/v1/customers", { baseURL: API_BASE });
+      await api.put(`/customers/${customer.id}`, customer);
+      const response = await api.get("/customers");
       return response.data as Customer[];
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.error || "Failed to update customer",
-      );
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to update customer");
     }
   },
 );
@@ -69,15 +62,12 @@ export const deleteCustomers = createAsyncThunk(
   "customers/deleteCustomers",
   async (ids: string[], { rejectWithValue }) => {
     try {
-      const promises = ids.map((id) =>
-        axios.delete(`/v1/customers/${id}`, { baseURL: API_BASE }),
-      );
+      const promises = ids.map((id) => api.delete(`/customers/${id}`));
       await Promise.all(promises);
       return ids;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.error || "Failed to delete customers",
-      );
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to delete customers");
     }
   },
 );
@@ -85,23 +75,15 @@ export const deleteCustomers = createAsyncThunk(
 export const bulkCreateCustomers = createAsyncThunk(
   "customers/bulkCreateCustomers",
   async (
-    customers: Omit<Customer, "id" | "createdAt" | "updatedAt">[],
+    _customers: Omit<Customer, "id" | "createdAt" | "updatedAt">[],
     { rejectWithValue },
   ) => {
     try {
-      // const newCustomers = await Promise.all(
-      //   customers.map((c) =>
-      //     axios
-      //       .post("/v1/customers", c, { baseURL: API_BASE })
-      //       .then((res) => res.data as Customer),
-      //   ),
-      // );
-      const response = await axios.get("/v1/customers", { baseURL: API_BASE });
+      const response = await api.get("/customers");
       return response.data as Customer[];
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.error || "Failed to bulk create customers",
-      );
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to bulk create customers");
     }
   },
 );

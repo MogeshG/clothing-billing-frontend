@@ -1,11 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Alert, Grid } from "@mui/material";
+import { Alert, Grid, IconButton, Tooltip } from "@mui/material";
+import SettingsIcon from "@mui/icons-material/Settings";
 import {
   updateBatch,
   fetchBatches,
   clearError,
+  generateBatchNo,
+  generateBarcode,
 } from "../../../slices/batchesSlice";
 import { useBatches } from "../../../hooks/useBatches";
 import CustomInput from "../../../components/CustomInput";
@@ -28,9 +31,10 @@ const UpdateBatchPage = () => {
   const [formData, setFormData] = useState<UpdateBatchForm>({
     status: "PENDING",
   });
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generatingBatchNo, setGeneratingBatchNo] = useState(false);
+  const [generatingBarcode, setGeneratingBarcode] = useState(false);
 
   useEffect(() => {
     if (!batch) {
@@ -41,6 +45,8 @@ const UpdateBatchPage = () => {
         sellingPrice: batch.sellingPrice || batch.mrp || undefined,
         manufactureDate: batch.manufactureDate,
         expiryDate: batch.expiryDate,
+        batchNo: batch.batchNo,
+        barcode: batch.barcode,
       });
     }
   }, [batch, dispatch]);
@@ -49,34 +55,119 @@ const UpdateBatchPage = () => {
     dispatch(clearError());
   }, [dispatch]);
 
+  // Auto-generate batchNo and barcode when status changes to ACTIVE and they are empty
+  const handleStatusChange = useCallback(
+    async (newStatus: "PENDING" | "ACTIVE" | "BLOCKED") => {
+      setFormData((prev) => ({ ...prev, status: newStatus }));
+
+      if (newStatus === "ACTIVE") {
+        const updates: Partial<UpdateBatchForm> = { status: newStatus };
+
+        if (!formData.batchNo) {
+          setGeneratingBatchNo(true);
+          try {
+            const newBatchNo = await dispatch(generateBatchNo()).unwrap();
+            updates.batchNo = newBatchNo;
+          } catch {
+            // silent fail
+          } finally {
+            setGeneratingBatchNo(false);
+          }
+        }
+
+        if (!formData.barcode) {
+          setGeneratingBarcode(true);
+          try {
+            const newBarcode = await dispatch(generateBarcode()).unwrap();
+            updates.barcode = newBarcode;
+          } catch {
+            // silent fail
+          } finally {
+            setGeneratingBarcode(false);
+          }
+        }
+
+        setFormData((prev) => ({ ...prev, ...updates }));
+      }
+    },
+    [dispatch, formData.batchNo, formData.barcode],
+  );
+
+  const handleGenerateBatchNo = async () => {
+    setGeneratingBatchNo(true);
+    try {
+      const newBatchNo = await dispatch(generateBatchNo()).unwrap();
+      setFormData((prev) => ({ ...prev, batchNo: newBatchNo }));
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.batchNo;
+        return next;
+      });
+    } catch (err: any) {
+      setErrors((prev) => ({ ...prev, batchNo: err || "Failed to generate" }));
+    } finally {
+      setGeneratingBatchNo(false);
+    }
+  };
+
+  const handleGenerateBarcode = async () => {
+    setGeneratingBarcode(true);
+    try {
+      const newBarcode = await dispatch(generateBarcode()).unwrap();
+      setFormData((prev) => ({ ...prev, barcode: newBarcode }));
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.barcode;
+        return next;
+      });
+    } catch (err: any) {
+      setErrors((prev) => ({ ...prev, barcode: err || "Failed to generate" }));
+    } finally {
+      setGeneratingBarcode(false);
+    }
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    let valid = true;
 
-    // We can add validation here if needed
+    if (formData.batchNo !== undefined && !formData.batchNo.trim()) {
+      newErrors.batchNo = "Batch number is required";
+    }
+    if (formData.barcode !== undefined && !formData.barcode.trim()) {
+      newErrors.barcode = "Barcode is required";
+    }
 
     setErrors(newErrors);
-    return valid;
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id || !validateForm()) return;
 
-    // Send the payload in snake_case to match backend
-    const isEpoch = (v?: string) =>
-      !v || new Date(v).getFullYear() <= 1970;
+    const isEpoch = (v?: string) => !v || new Date(v).getFullYear() <= 1970;
 
     const submitData: any = {
       id,
       status: formData.status,
       selling_price: formData.sellingPrice,
-      manufacture_date: isEpoch(formData.manufactureDate) ? null : formData.manufactureDate,
+      manufacture_date: isEpoch(formData.manufactureDate)
+        ? null
+        : formData.manufactureDate,
       expiry_date: isEpoch(formData.expiryDate) ? null : formData.expiryDate,
     };
-    // Strip undefined fields (but keep explicit nulls for clearing dates)
+
+    // Only include batch_no and barcode if they were changed from original
+    if (formData.batchNo !== undefined && formData.batchNo !== batch?.batchNo) {
+      submitData.batch_no = formData.batchNo;
+    }
+    if (formData.barcode !== undefined && formData.barcode !== batch?.barcode) {
+      submitData.barcode = formData.barcode;
+    }
+
+    // Strip undefined fields
     Object.keys(submitData).forEach(
-      (k) => submitData[k] === undefined && delete submitData[k]
+      (k) => submitData[k] === undefined && delete submitData[k],
     );
 
     setIsSubmitting(true);
@@ -94,7 +185,8 @@ const UpdateBatchPage = () => {
     return <Loader />;
   }
 
-  const totalGst = (Number(batch.cgstPercent) || 0) + (Number(batch.sgstPercent) || 0);
+  const totalGst =
+    (Number(batch.cgstPercent) || 0) + (Number(batch.sgstPercent) || 0);
 
   return (
     <div className="flex flex-col m-2 w-full space-y-4 p-3 overflow-y-auto">
@@ -109,10 +201,28 @@ const UpdateBatchPage = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <Grid container spacing={4}>
             <Grid size={{ xs: 12, md: 4 }}>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
-                Batch No
-              </label>
-              <p className="font-semibold text-lg text-gray-800">{batch.batchNo}</p>
+              <CustomInput
+                label="Batch No"
+                value={formData.batchNo || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, batchNo: e.target.value })
+                }
+                placeholder="Enter or generate batch no"
+                endIcon={
+                  <Tooltip title="Auto-generate unique batch no">
+                    <IconButton
+                      size="small"
+                      onClick={handleGenerateBatchNo}
+                      disabled={generatingBatchNo}
+                    >
+                      <SettingsIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                }
+                hasError={!!errors.batchNo}
+                errorText={errors.batchNo}
+                fixedErrorSpace
+              />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <label className="block text-sm font-medium text-gray-500 mb-1">
@@ -127,10 +237,9 @@ const UpdateBatchPage = () => {
               <CustomSelect
                 value={formData.status || batch.status}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    status: e.target.value as "PENDING" | "ACTIVE" | "BLOCKED",
-                  })
+                  handleStatusChange(
+                    e.target.value as "PENDING" | "ACTIVE" | "BLOCKED",
+                  )
                 }
                 options={[
                   { label: "Pending", value: "PENDING" },
@@ -141,10 +250,28 @@ const UpdateBatchPage = () => {
             </Grid>
 
             <Grid size={{ xs: 12, md: 4 }}>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
-                Barcode
-              </label>
-              <p className="font-semibold text-gray-800">{batch.barcode}</p>
+              <CustomInput
+                label="Barcode"
+                value={formData.barcode || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, barcode: e.target.value })
+                }
+                placeholder="Enter or generate barcode"
+                endIcon={
+                  <Tooltip title="Auto-generate unique barcode">
+                    <IconButton
+                      size="small"
+                      onClick={handleGenerateBarcode}
+                      disabled={generatingBarcode}
+                    >
+                      <SettingsIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                }
+                hasError={!!errors.barcode}
+                errorText={errors.barcode}
+                fixedErrorSpace
+              />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <label className="block text-sm font-medium text-gray-500 mb-1">
@@ -156,7 +283,9 @@ const UpdateBatchPage = () => {
               <label className="block text-sm font-medium text-gray-500 mb-1">
                 Remaining
               </label>
-              <p className="font-semibold text-gray-800">{batch.remainingQuantity}</p>
+              <p className="font-semibold text-gray-800">
+                {batch.remainingQuantity}
+              </p>
             </Grid>
 
             <Grid size={{ xs: 12, md: 4 }}>
@@ -169,7 +298,9 @@ const UpdateBatchPage = () => {
               <label className="block text-sm font-medium text-gray-500 mb-1">
                 Purchase Price
               </label>
-              <p className="font-semibold text-gray-800">₹{batch.purchasePrice.toLocaleString()}</p>
+              <p className="font-semibold text-gray-800">
+                ₹{batch.purchasePrice.toLocaleString()}
+              </p>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <label className="block text-sm font-medium text-gray-500 mb-1">

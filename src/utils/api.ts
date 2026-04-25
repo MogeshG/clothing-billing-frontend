@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getToken } from "./auth";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
 
@@ -7,26 +8,32 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true,
 });
 
+// Request interceptor to attach JWT token
+api.interceptors.request.use(
+  (config) => {
+    const token = getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
+// Response interceptor for global error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    throw new Error(
-      error.response?.data?.message || error.message || "API error",
-    );
+    const message =
+      error.response?.data?.error ||
+      error.response?.data?.message ||
+      error.message ||
+      "API error";
+    throw new Error(message);
   },
 );
 
-// export const apiCall = async (
-//   endpoint: string,
-//   options: { method?: string; data?: Record<string, unknown> } = {},
-// ) => {
-//   const { method = "GET", data } = options;
-//   const config = { method, data };
-//   const response = await api(endpoint, config);
-//   return response.data;
-// };
-
 export default api;
+

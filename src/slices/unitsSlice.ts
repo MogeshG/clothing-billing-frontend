@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { Unit } from "../types/unit";
-import axios from "axios";
-import { API_BASE } from "../utils/auth";
+import api from "../utils/api";
 import { snakeToCamel } from "../utils/caseConvert";
 
 interface UnitsState {
@@ -22,15 +21,12 @@ export const fetchUnits = createAsyncThunk<
   { rejectValue: string }
 >("units/fetchUnits", async (_, { rejectWithValue }) => {
   try {
-    const response = await axios.get("/v1/units", {
-      baseURL: API_BASE,
-    });
+    const response = await api.get("/units");
     // Convert snake_case from backend to camelCase
     return response.data.map((u) => snakeToCamel(u)) as Unit[];
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch units";
-    return rejectWithValue(message);
+    const err = error as Error;
+    return rejectWithValue(err.message || "Failed to fetch units");
   }
 });
 

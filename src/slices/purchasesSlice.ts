@@ -4,8 +4,7 @@ import type {
   AddPurchaseForm,
   UpdatePurchaseForm,
 } from "../types/purchase";
-import axios from "axios";
-import { API_BASE } from "../utils/auth";
+import api from "../utils/api";
 import { camelToSnake, snakeToCamel } from "../utils/caseConvert";
 
 interface PurchasesState {
@@ -28,15 +27,12 @@ export const fetchPurchases = createAsyncThunk<
   { rejectValue: string }
 >("purchases/fetchPurchases", async (_, { rejectWithValue }) => {
   try {
-    const response = await axios.get("/v1/purchases", {
-      baseURL: API_BASE,
-    });
+    const response = await api.get("/purchases");
     // Convert snake_case from backend to camelCase for frontend types
     return response.data.map((p) => snakeToCamel(p)) as Purchase[];
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch purchases";
-    return rejectWithValue(message);
+    const err = error as Error;
+    return rejectWithValue(err.message || "Failed to fetch purchases");
   }
 });
 
@@ -46,14 +42,11 @@ export const fetchPurchaseById = createAsyncThunk<
   { rejectValue: string }
 >("purchases/fetchPurchaseById", async (id, { rejectWithValue }) => {
   try {
-    const response = await axios.get(`/v1/purchases/${id}`, {
-      baseURL: API_BASE,
-    });
+    const response = await api.get(`/purchases/${id}`);
     return snakeToCamel(response.data) as Purchase;
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch purchase";
-    return rejectWithValue(message);
+    const err = error as Error;
+    return rejectWithValue(err.message || "Failed to fetch purchase");
   }
 });
 
@@ -64,14 +57,11 @@ export const addPurchase = createAsyncThunk<
 >("purchases/addPurchase", async (purchaseData, { rejectWithValue }) => {
   try {
     const snakeData = camelToSnake(purchaseData);
-    const response = await axios.post("/v1/purchases", snakeData, {
-      baseURL: API_BASE,
-    });
+    const response = await api.post("/purchases", snakeData);
     return snakeToCamel(response.data.purchase) as Purchase;
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Failed to create purchase";
-    return rejectWithValue(message);
+    const err = error as Error;
+    return rejectWithValue(err.message || "Failed to create purchase");
   }
 });
 
@@ -83,14 +73,11 @@ export const updatePurchase = createAsyncThunk<
   try {
     const { id, ...data } = updateData;
     const snakeData = camelToSnake(data);
-    const response = await axios.put(`/v1/purchases/${id}`, snakeData, {
-      baseURL: API_BASE,
-    });
+    const response = await api.put(`/purchases/${id}`, snakeData);
     return snakeToCamel(response.data.purchase) as Purchase;
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Failed to update purchase";
-    return rejectWithValue(message);
+    const err = error as Error;
+    return rejectWithValue(err.message || "Failed to update purchase");
   }
 });
 
@@ -100,15 +87,12 @@ export const removePurchase = createAsyncThunk<
   { rejectValue: string }
 >("purchases/deletePurchase", async (id, { rejectWithValue, dispatch }) => {
   try {
-    await axios.delete(`/v1/purchases/${id}`, {
-      baseURL: API_BASE,
-    });
+    await api.delete(`/purchases/${id}`);
     // Optimistic remove
     dispatch(fetchPurchases());
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Failed to delete purchase";
-    return rejectWithValue(message);
+    const err = error as Error;
+    return rejectWithValue(err.message || "Failed to delete purchase");
   }
 });
 
@@ -147,7 +131,9 @@ const purchasesSlice = createSlice({
       .addCase(fetchPurchaseById.fulfilled, (state, action) => {
         state.loading = false;
         state.selectedPurchase = action.payload;
-        const index = state.purchases.findIndex((p) => p.id === action.payload.id);
+        const index = state.purchases.findIndex(
+          (p) => p.id === action.payload.id,
+        );
         if (index === -1) {
           state.purchases.push(action.payload);
         } else {
@@ -197,5 +183,6 @@ const purchasesSlice = createSlice({
   },
 });
 
-export const { clearError, setSelectedPurchase, clearSelectedPurchase } = purchasesSlice.actions;
+export const { clearError, setSelectedPurchase, clearSelectedPurchase } =
+  purchasesSlice.actions;
 export default purchasesSlice.reducer;

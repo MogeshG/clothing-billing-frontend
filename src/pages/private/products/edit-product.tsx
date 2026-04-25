@@ -26,6 +26,7 @@ import type {
 import CustomInput from "../../../components/CustomInput";
 import CustomButton from "../../../components/CustomButton";
 import type { AppDispatch } from "../../../store";
+import Loader from "../../../components/CustomLoader";
 
 const EditProductPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -300,7 +301,7 @@ const EditProductPage = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <Loader />;
   }
 
   if (!product) {

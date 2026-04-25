@@ -1,26 +1,20 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
-import { API_BASE } from "../utils/auth";
-
+import api from "../utils/api";
 
 export const fetchPreferences = createAsyncThunk(
   "preferences/fetchPreferences",
   async () => {
-    const response = await axios.get(`/v1/preferences`, {
-      baseURL: API_BASE
-    });
+    const response = await api.get(`/preferences`);
     return response.data;
-  }
+  },
 );
 
 export const updatePreferences = createAsyncThunk(
   "preferences/updatePreferences",
   async (preferences: Record<string, string>) => {
-    const response = await axios.post(`/v1/preferences/bulk`, { preferences }, {
-      baseURL: API_BASE
-    });
+    const response = await api.post(`/preferences/bulk`, { preferences });
     return response.data;
-  }
+  },
 );
 
 interface PreferenceState {
