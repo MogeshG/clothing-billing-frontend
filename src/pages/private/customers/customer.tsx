@@ -15,8 +15,17 @@ import DeleteCustomerDialog from "./DeleteCustomerDialog";
 import BulkCustomerDialog from "./BulkCustomerDialog";
 import { CustomTable } from "../../../components/CustomTable";
 import type { AppDispatch } from "../../../store";
-import { DeleteOutlined, EditOutlined, UploadFile } from "@mui/icons-material";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  UploadFile,
+  FileDownload,
+} from "@mui/icons-material";
 import PermissionGuard from "../../../components/PermissionGuard";
+import {
+  exportTableToExcel,
+  type ExportColumn,
+} from "../../../utils/exportTableToExcel";
 
 const Customers = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -53,6 +62,35 @@ const Customers = () => {
       }
     },
     [dispatch, refetch],
+  );
+
+  const handleExportExcel = useCallback(
+    async (table: any) => {
+      const selectedRows = table.getSelectedRowModel().rows;
+      const rowsToExport =
+        selectedRows.length > 0
+          ? selectedRows.map((row: any) => row.original)
+          : customers;
+
+      const visibleColumns = table
+        .getVisibleLeafColumns()
+        .filter(
+          (col: any) =>
+            !col.id?.startsWith("mrt-") && col.columnDef?.accessorKey,
+        );
+
+      const exportColumns: ExportColumn[] = visibleColumns.map((col: any) => ({
+        header: col.columnDef.header as string,
+        accessorKey: col.columnDef.accessorKey as string,
+        formatter:
+          col.columnDef.accessorKey === "createdAt"
+            ? (value: unknown) => new Date(value as string).toLocaleDateString()
+            : undefined,
+      }));
+
+      await exportTableToExcel("customers.xlsx", exportColumns, rowsToExport);
+    },
+    [customers],
   );
 
   const columns = useMemo<MRT_ColumnDef<Customer>[]>(
@@ -162,19 +200,31 @@ const Customers = () => {
         renderTopToolbarCustomActions={({ table }) => {
           const selectedRows = table.getSelectedRowModel().rows;
 
-          return selectedRows.length > 0 ? (
-            <PermissionGuard module="Customers" action="delete">
+          return (
+            <div className="flex gap-2">
               <CustomButton
-                variant="contained"
-                className="bg-red-500! hover:bg-red-600! text-white"
+                variant="outlined"
                 size="small"
-                onClick={() => handleBulkDelete({ table })}
-                startIcon={<DeleteIcon />}
+                onClick={() => handleExportExcel(table)}
+                startIcon={<FileDownload />}
               >
-                Delete Selected ({selectedRows.length})
+                Export Excel
               </CustomButton>
-            </PermissionGuard>
-          ) : null;
+              {selectedRows.length > 0 && (
+                <PermissionGuard module="Customers" action="delete">
+                  <CustomButton
+                    variant="contained"
+                    className="bg-red-500! hover:bg-red-600! text-white"
+                    size="small"
+                    onClick={() => handleBulkDelete({ table })}
+                    startIcon={<DeleteIcon />}
+                  >
+                    Delete Selected ({selectedRows.length})
+                  </CustomButton>
+                </PermissionGuard>
+              )}
+            </div>
+          );
         }}
       />
 

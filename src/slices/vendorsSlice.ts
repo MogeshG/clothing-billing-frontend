@@ -3,6 +3,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { Vendor, AddVendorForm } from "../types/vendor";
 import api from "../utils/api";
+import { snakeToCamel } from "../utils/caseConvert";
 
 interface VendorsState {
   vendors: Vendor[];
@@ -40,7 +41,7 @@ export const fetchVendors = createAsyncThunk(
       limit: limit.toString(),
     });
     const response = await api.get(`/vendors?${params}`);
-    return response.data;
+    return snakeToCamel(response.data);
   },
 );
 
@@ -49,7 +50,7 @@ export const addVendor = createAsyncThunk(
   async (vendorData: AddVendorForm, { rejectWithValue }) => {
     try {
       const response = await api.post("/vendors", vendorData);
-      return response.data;
+      return snakeToCamel(response.data);
     } catch (error: any) {
       return rejectWithValue(
         error.response?.data?.error || "Failed to add vendor",
@@ -63,7 +64,7 @@ export const updateVendor = createAsyncThunk(
   async (vendor: Partial<Vendor> & { id: string }, { rejectWithValue }) => {
     try {
       const response = await api.put(`/vendors/${vendor.id}`, vendor);
-      return response.data;
+      return snakeToCamel(response.data);
     } catch (error: any) {
       return rejectWithValue(
         error.response?.data?.error || "Failed to update vendor",
@@ -77,7 +78,7 @@ export const fetchVendorById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const response = await api.get(`/vendors/${id}`);
-      return response.data;
+      return snakeToCamel(response.data);
     } catch (error: any) {
       return rejectWithValue(
         error.response?.data?.error || "Failed to fetch vendor",

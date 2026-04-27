@@ -3,6 +3,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 import type { Customer } from "../types/customer";
 import api from "../utils/api";
+import { snakeToCamel } from "../utils/caseConvert";
 
 interface CustomersState {
   customers: Customer[];
@@ -23,7 +24,7 @@ export const fetchCustomers = createAsyncThunk(
   "customers/fetchCustomers",
   async () => {
     const response = await api.get("/customers");
-    return response.data as Customer[];
+    return snakeToCamel(response.data) as Customer[];
   },
 );
 
@@ -36,7 +37,7 @@ export const addCustomer = createAsyncThunk(
     try {
       await api.post("/customers", customer);
       const response = await api.get("/customers");
-      return response.data as Customer[];
+      return snakeToCamel(response.data) as Customer[];
     } catch (error) {
       const err = error as Error;
       return rejectWithValue(err.message || "Failed to add customer");
@@ -80,7 +81,7 @@ export const bulkCreateCustomers = createAsyncThunk(
   ) => {
     try {
       const response = await api.get("/customers");
-      return response.data as Customer[];
+      return snakeToCamel(response.data) as Customer[];
     } catch (error) {
       const err = error as Error;
       return rejectWithValue(err.message || "Failed to bulk create customers");

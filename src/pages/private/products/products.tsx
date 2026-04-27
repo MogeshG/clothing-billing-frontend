@@ -14,7 +14,15 @@ import { CustomTable } from "../../../components/CustomTable";
 import BulkProductDialog from "./BulkProductDialog";
 import DeleteProductDialog from "./DeleteProductDialog";
 import type { AppDispatch } from "../../../store";
-import { DeleteOutlined, EditOutlined } from "@mui/icons-material";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  FileDownload,
+} from "@mui/icons-material";
+import {
+  exportTableToExcel,
+  type ExportColumn,
+} from "../../../utils/exportTableToExcel";
 import { useNavigate } from "react-router-dom";
 import PermissionGuard from "../../../components/PermissionGuard";
 
@@ -67,58 +75,34 @@ const ProductsPage = () => {
     [dispatch, refetch],
   );
 
-  // const columns = useMemo<MRT_ColumnDef<Product>[]>(
-  //   () => [
-  //     {
-  //       accessorKey: "name",
-  //       header: "Name",
-  //     },
-  //     {
-  //       accessorKey: "sku",
-  //       header: "SKU",
-  //     },
-  //     {
-  //       accessorKey: "brand",
-  //       header: "Brand",
-  //     },
-  //     {
-  //       accessorKey: "basePrice",
-  //       header: "Base Price",
-  //       Cell: ({ renderedCellValue }) => `₹${renderedCellValue}`,
-  //     },
-  //     {
-  //       accessorKey: "mrp",
-  //       header: "MRP",
-  //       Cell: ({ renderedCellValue }) => `₹${renderedCellValue}`,
-  //     },
-  //     {
-  //       accessorKey: "gstPercent",
-  //       header: "GST %",
-  //     },
-  //     {
-  //       accessorKey: "isActive",
-  //       header: "Active",
-  //       Cell: ({ row }) => (
-  //         <span
-  //           className={`px-2 py-1 rounded-full text-xs font-medium ${
-  //             row.original.isActive
-  //               ? "bg-green-100 text-green-800"
-  //               : "bg-red-100 text-red-800"
-  //           }`}
-  //         >
-  //           {row.original.isActive ? "Yes" : "No"}
-  //         </span>
-  //       ),
-  //     },
-  //     {
-  //       accessorKey: "createdAt",
-  //       header: "Created",
-  //       Cell: ({ renderedCellValue }) =>
-  //         new Date(renderedCellValue as string).toLocaleDateString(),
-  //     },
-  //   ],
-  //   [],
-  // );
+  const handleExportExcel = useCallback(
+    async (table: any) => {
+      const selectedRows = table.getSelectedRowModel().rows;
+      const rowsToExport =
+        selectedRows.length > 0
+          ? selectedRows.map((row: any) => row.original)
+          : products;
+
+      const visibleColumns = table
+        .getVisibleLeafColumns()
+        .filter(
+          (col: any) =>
+            !col.id?.startsWith("mrt-") && col.columnDef?.accessorKey,
+        );
+
+      const exportColumns: ExportColumn[] = visibleColumns.map((col: any) => ({
+        header: col.columnDef.header as string,
+        accessorKey: col.columnDef.accessorKey as string,
+        formatter:
+          col.columnDef.accessorKey === "createdAt"
+            ? (value: unknown) => new Date(value as string).toLocaleDateString()
+            : undefined,
+      }));
+
+      await exportTableToExcel("products.xlsx", exportColumns, rowsToExport);
+    },
+    [products],
+  );
 
   const columns = useMemo<MRT_ColumnDef<Product>[]>(
     () => [
@@ -143,11 +127,13 @@ const ProductsPage = () => {
       {
         accessorKey: "categoryName",
         header: "Category",
+        Cell: ({ row }) => `${row.original.categoryName}`,
       },
       {
         accessorKey: "gstPercent",
         header: "GST %",
-        Cell: ({ renderedCellValue }) => `${renderedCellValue}%`,
+        Cell: ({ row }) =>
+          `${Number(row.original.cgstPercent) + Number(row.original.sgstPercent)}%`,
       },
       {
         accessorKey: "taxInclusive",
@@ -345,19 +331,31 @@ const ProductsPage = () => {
         )}
         renderTopToolbarCustomActions={({ table }) => {
           const selectedRows = table.getSelectedRowModel().rows;
-          return selectedRows.length > 0 ? (
-            <PermissionGuard module="Inventory" action="delete">
+          return (
+            <div className="flex gap-2">
               <CustomButton
-                variant="contained"
-                className="bg-red-500! hover:bg-red-600! text-white"
+                variant="outlined"
                 size="small"
-                onClick={() => handleBulkDelete({ table })}
-                startIcon={<DeleteIcon />}
+                onClick={() => handleExportExcel(table)}
+                startIcon={<FileDownload />}
               >
-                Delete Selected ({selectedRows.length})
+                Export Excel
               </CustomButton>
-            </PermissionGuard>
-          ) : null;
+              {selectedRows.length > 0 && (
+                <PermissionGuard module="Inventory" action="delete">
+                  <CustomButton
+                    variant="contained"
+                    className="bg-red-500! hover:bg-red-600! text-white"
+                    size="small"
+                    onClick={() => handleBulkDelete({ table })}
+                    startIcon={<DeleteIcon />}
+                  >
+                    Delete Selected ({selectedRows.length})
+                  </CustomButton>
+                </PermissionGuard>
+              )}
+            </div>
+          );
         }}
       />
 

@@ -3,6 +3,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 import type { User } from "../types/user";
 import api from "../utils/api";
+import { snakeToCamel } from "../utils/caseConvert";
 
 interface UsersState {
   users: User[];
@@ -55,7 +56,7 @@ export const addUser = createAsyncThunk<
     const payload = { ...userData };
     delete (payload as Record<string, unknown>).confirmPassword;
     const response = await api.post("/users", payload);
-    return response.data.user as User;
+    return snakeToCamel(response.data.user);
   } catch (error: unknown) {
     const err = error as Error;
     return rejectWithValue(err.message || "Failed to create user");
@@ -74,7 +75,7 @@ export const updateUser = createAsyncThunk<
     delete (payload as Record<string, unknown>).confirmPassword;
 
     const response = await api.put(`/users/${id}`, payload);
-    return response.data.user as User;
+    return snakeToCamel(response.data.user);
   } catch (error: unknown) {
     const err = error as Error;
     return rejectWithValue(err.message || "Failed to update user");
@@ -178,4 +179,3 @@ const usersSlice = createSlice({
 
 export const { clearUsersError } = usersSlice.actions;
 export default usersSlice.reducer;
-

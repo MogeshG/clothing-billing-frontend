@@ -19,7 +19,7 @@ import type { AppDispatch } from "../../../store";
 import dayjs from "dayjs";
 import { useDispatch } from "react-redux";
 import CustomSelect from "../../../components/CustomSelect";
-import Loader from "../../../components/CustomLoader";
+import { SectionLoader as Loader } from "../../../components/CustomLoader";
 
 const UpdateBatchPage = () => {
   const dispatch = useDispatch<AppDispatch>();

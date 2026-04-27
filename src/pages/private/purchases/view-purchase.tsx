@@ -8,7 +8,7 @@ import { CustomTable } from "../../../components/CustomTable";
 import type { MRT_ColumnDef } from "material-react-table";
 import { RemoveRedEye } from "@mui/icons-material";
 import formatRupee from "../../../utils/formatRupee";
-import Loader from "../../../components/CustomLoader";
+import { SectionLoader as Loader } from "../../../components/CustomLoader";
 
 const ViewPurchasePage = () => {
   const { id } = useParams<{ id: string }>();
@@ -235,25 +235,25 @@ const ViewPurchasePage = () => {
               <div className="flex flex-col">
                 <span className="text-gray-600">Sub Total</span>
                 <span className="text-xl font-bold text-gray-900">
-                  {formatRupee(parseInt(purchase.subTotal))}
+                  {formatRupee(Number(purchase.subTotal))}
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="text-gray-600">Discount</span>
                 <span className="text-xl font-semibold text-green-600">
-                  -{formatRupee(parseInt(purchase.discount))}
+                  -{formatRupee(Number(purchase.discount))}
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="text-gray-600">Tax Amount</span>
                 <span className="text-xl font-semibold">
-                  {formatRupee(parseInt(purchase.taxAmount))}
+                  {formatRupee(Number(purchase.taxAmount))}
                 </span>
               </div>
               <div className="flex flex-col border-l border-gray-200 pl-6">
                 <span className="text-gray-600">Grand Total</span>
                 <span className="text-3xl font-bold text-gray-900">
-                  {formatRupee(parseInt(purchase.totalAmount))}
+                  {formatRupee(Number(purchase.totalAmount))}
                 </span>
               </div>
             </div>

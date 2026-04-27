@@ -30,7 +30,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { isValidGST, isValidPhone } from "../../../utils/validation";
 import { camelToSnake } from "../../../utils/caseConvert";
 import dayjs from "dayjs";
-import Loader from "../../../components/CustomLoader";
+import { SectionLoader as Loader } from "../../../components/CustomLoader";
 
 const UpdatePurchasePage = () => {
   const { id } = useParams<{ id: string }>();

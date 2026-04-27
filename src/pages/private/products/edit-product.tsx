@@ -25,7 +25,7 @@ import type {
 import CustomInput from "../../../components/CustomInput";
 import CustomButton from "../../../components/CustomButton";
 import type { AppDispatch } from "../../../store";
-import Loader from "../../../components/CustomLoader";
+import { SectionLoader as Loader } from "../../../components/CustomLoader";
 
 const EditProductPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -67,8 +67,10 @@ const EditProductPage = () => {
         igstPercent: Number(product.igstPercent) || 0,
         taxInclusive: product.taxInclusive || false,
       });
+
       setVariants(
         (product.variant || []).map((v: any) => ({
+          id: v.id,
           size: v.size,
           color: v.color,
           // barcode: v.barcode,
@@ -254,6 +256,7 @@ const EditProductPage = () => {
 
     // Transform to snake_case for backend
     const transformedVariants = variants.map((v) => ({
+      ...(v.id ? { id: v.id } : {}),
       size: v.size,
       color: v.color,
       // barcode: v.barcode,

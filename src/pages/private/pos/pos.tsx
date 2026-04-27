@@ -12,6 +12,7 @@ import {
 import { useInvoices } from "../../../hooks/useInvoices";
 import { usePreferences } from "../../../hooks/usePreferences";
 import {
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -86,6 +87,8 @@ const POSPage = () => {
   const [showDrafts, setShowDrafts] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [showBillModal, setShowBillModal] = useState(false);
+  const [deleteDraftDialogOpen, setDeleteDraftDialogOpen] = useState(false);
+  const [draftToDelete, setDraftToDelete] = useState<Invoice | null>(null);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -395,6 +398,21 @@ const POSPage = () => {
       address: draft.customerAddress || "",
     });
     setShowDrafts(false);
+  };
+
+  const handleConfirmDeleteDraft = () => {
+    if (!draftToDelete) return;
+    dispatch(deleteInvoice(draftToDelete.id))
+      .unwrap()
+      .then(() => showMessage("Draft deleted successfully"))
+      .catch((err) =>
+        showMessage(`Failed to delete draft: ${err.message}`, "error"),
+      );
+    if (currentDraftId === draftToDelete.id) {
+      handleReset();
+    }
+    setDeleteDraftDialogOpen(false);
+    setDraftToDelete(null);
   };
 
   const handleGenerateBill = async (invoiceId?: string) => {
@@ -1056,26 +1074,8 @@ const POSPage = () => {
                           color="error"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (
-                              window.confirm(
-                                "Are you sure you want to delete this draft?",
-                              )
-                            ) {
-                              dispatch(deleteInvoice(draft.id))
-                                .unwrap()
-                                .then(() =>
-                                  showMessage("Draft deleted successfully"),
-                                )
-                                .catch((err) =>
-                                  showMessage(
-                                    `Failed to delete draft: ${err.message}`,
-                                    "error",
-                                  ),
-                                );
-                              if (currentDraftId === draft.id) {
-                                handleReset();
-                              }
-                            }
+                            setDraftToDelete(draft);
+                            setDeleteDraftDialogOpen(true);
                           }}
                         >
                           <DeleteIcon />
@@ -1102,6 +1102,40 @@ const POSPage = () => {
               </CustomButton>
             </DialogActions>
           </Dialog>
+
+          {/* Delete Draft Confirmation Dialog */}
+          <Dialog
+            open={deleteDraftDialogOpen}
+            onClose={() => {
+              setDeleteDraftDialogOpen(false);
+              setDraftToDelete(null);
+            }}
+            maxWidth="xs"
+            fullWidth
+          >
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogContent>
+              <p>Are you sure you want to delete this draft?</p>
+            </DialogContent>
+            <DialogActions>
+              <Button
+                onClick={() => {
+                  setDeleteDraftDialogOpen(false);
+                  setDraftToDelete(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmDeleteDraft}
+                color="error"
+                variant="contained"
+              >
+                Delete
+              </Button>
+            </DialogActions>
+          </Dialog>
+
           <Snackbar
             open={snackbar.open}
             autoHideDuration={4000}

@@ -16,7 +16,12 @@ import {
   DeleteOutlined,
   EditOutlined,
   RemoveRedEye,
+  FileDownload,
 } from "@mui/icons-material";
+import {
+  exportTableToExcel,
+  type ExportColumn,
+} from "../../../utils/exportTableToExcel";
 import { useNavigate } from "react-router-dom";
 
 const Vendors = () => {
@@ -49,6 +54,35 @@ const Vendors = () => {
       }
     },
     [dispatch, refetch],
+  );
+
+  const handleExportExcel = useCallback(
+    async (table: any) => {
+      const selectedRows = table.getSelectedRowModel().rows;
+      const rowsToExport =
+        selectedRows.length > 0
+          ? selectedRows.map((row: any) => row.original)
+          : vendors;
+
+      const visibleColumns = table
+        .getVisibleLeafColumns()
+        .filter(
+          (col: any) =>
+            !col.id?.startsWith("mrt-") && col.columnDef?.accessorKey,
+        );
+
+      const exportColumns: ExportColumn[] = visibleColumns.map((col: any) => ({
+        header: col.columnDef.header as string,
+        accessorKey: col.columnDef.accessorKey as string,
+        formatter:
+          col.columnDef.accessorKey === "createdAt"
+            ? (value: unknown) => new Date(value as string).toLocaleDateString()
+            : undefined,
+      }));
+
+      await exportTableToExcel("vendors.xlsx", exportColumns, rowsToExport);
+    },
+    [vendors],
   );
 
   const columns = useMemo<MRT_ColumnDef<Vendor>[]>(
@@ -86,8 +120,10 @@ const Vendors = () => {
       {
         accessorKey: "createdAt",
         header: "Created",
-        Cell: ({ renderedCellValue }) =>
-          new Date(renderedCellValue as string).toLocaleDateString(),
+        Cell: ({ renderedCellValue, row }) => {
+          console.log(row.original);
+          return new Date(renderedCellValue as string).toLocaleDateString();
+        },
       },
     ],
     [],
@@ -175,17 +211,29 @@ const Vendors = () => {
         )}
         renderTopToolbarCustomActions={({ table }) => {
           const selectedRows = table.getSelectedRowModel().rows;
-          return selectedRows.length > 0 ? (
-            <CustomButton
-              variant="contained"
-              className="bg-red-500! hover:bg-red-600! text-white"
-              size="small"
-              onClick={() => handleBulkDelete({ table })}
-              startIcon={<DeleteIcon />}
-            >
-              Delete Selected ({selectedRows.length})
-            </CustomButton>
-          ) : null;
+          return (
+            <div className="flex gap-2">
+              <CustomButton
+                variant="outlined"
+                size="small"
+                onClick={() => handleExportExcel(table)}
+                startIcon={<FileDownload />}
+              >
+                Export Excel
+              </CustomButton>
+              {selectedRows.length > 0 && (
+                <CustomButton
+                  variant="contained"
+                  className="bg-red-500! hover:bg-red-600! text-white"
+                  size="small"
+                  onClick={() => handleBulkDelete({ table })}
+                  startIcon={<DeleteIcon />}
+                >
+                  Delete Selected ({selectedRows.length})
+                </CustomButton>
+              )}
+            </div>
+          );
         }}
       />
 

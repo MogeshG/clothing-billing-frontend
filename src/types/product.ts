@@ -39,6 +39,7 @@ export type ProductVariant = {
 };
 
 export type ProductVariantInput = {
+  id?: string;
   size: string;
   color: string;
   // barcode: string;
