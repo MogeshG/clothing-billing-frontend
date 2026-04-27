@@ -20,6 +20,12 @@ export interface CustomInputProps extends Omit<
   TextFieldProps,
   "size" | "type" | "helperText"
 > {
+  /** @deprecated Use slotProps instead. Intentionally included to filter out. */
+  InputLabelProps?: unknown;
+  /** @deprecated Use slotProps instead. Intentionally included to filter out. */
+  InputProps?: unknown;
+  /** @deprecated Use slotProps instead. Intentionally included to filter out. */
+  inputProps?: unknown;
   label?: string;
   value?: string | number;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -65,6 +71,13 @@ export default function CustomInput({
   helperTextClassName,
   startIconClassName,
   endIconClassName,
+  // Filter out legacy MUI props that conflict with slotProps
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  InputLabelProps: _InputLabelProps,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  InputProps: _InputProps,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  inputProps: _inputProps,
   ...rest
 }: CustomInputProps) {
   const showError = hasError && errorText;
@@ -90,28 +103,30 @@ export default function CustomInput({
         fullWidth={fullWidth}
         size={size}
         variant="outlined"
-        InputLabelProps={{
-          className: clsx("text-sm font-medium", labelClassName),
-        }}
-        InputProps={{
-          className: clsx("transition-all rounded-lg", inputClassName),
-          startAdornment: startIcon ? (
-            <InputAdornment position="start">
-              <span className={clsx("flex items-center", startIconClassName)}>
-                {startIcon}
-              </span>
-            </InputAdornment>
-          ) : undefined,
-          endAdornment: endIcon ? (
-            <InputAdornment position="end">
-              <span className={clsx("flex items-center", endIconClassName)}>
-                {endIcon}
-              </span>
-            </InputAdornment>
-          ) : undefined,
-        }}
-        inputProps={{
-          className: clsx("bg-transparent", fieldClassName),
+        slotProps={{
+          inputLabel: {
+            className: clsx("text-sm font-medium", labelClassName),
+          },
+          input: {
+            className: clsx("transition-all rounded-lg", inputClassName),
+            startAdornment: startIcon ? (
+              <InputAdornment position="start">
+                <span className={clsx("flex items-center", startIconClassName)}>
+                  {startIcon}
+                </span>
+              </InputAdornment>
+            ) : undefined,
+            endAdornment: endIcon ? (
+              <InputAdornment position="end">
+                <span className={clsx("flex items-center", endIconClassName)}>
+                  {endIcon}
+                </span>
+              </InputAdornment>
+            ) : undefined,
+          },
+          htmlInput: {
+            className: clsx("bg-transparent", fieldClassName),
+          },
         }}
         {...rest}
       />
@@ -124,7 +139,7 @@ export default function CustomInput({
             showError
               ? "opacity-100 bg-red text-red-700"
               : fixedErrorSpace
-                ? "opacity-0"
+              ? "opacity-0"
                 : "",
             helperTextClassName,
           )}

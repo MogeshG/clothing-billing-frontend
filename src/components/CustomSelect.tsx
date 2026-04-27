@@ -84,7 +84,9 @@ export default function CustomSelect({
       )}
 
       <FormControl fullWidth disabled={disabled} size={size}>
-        <InputLabel id="custom-select-label" shrink={hasValue || focused}>{label}</InputLabel>
+        <InputLabel id="custom-select-label" shrink={hasValue || focused}>
+          {label}
+        </InputLabel>
 
         <Select
           id="custom-select"
@@ -101,7 +103,12 @@ export default function CustomSelect({
             if (!hasValue) {
               return <span className="text-gray-400">{label}</span>;
             }
-            return Array.isArray(selected) ? selected.join(", ") : selected;
+            if (Array.isArray(selected)) {
+              return selected
+                .map((val) => options.find((o) => o.value === val)?.label ?? val)
+                .join(", ");
+            }
+            return options.find((o) => o.value === selected)?.label ?? selected;
           }}
           startAdornment={
             startIcon ? (

@@ -1,25 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import useForm from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useDispatch } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import { Alert, Grid } from "@mui/material";
-import { updateVendor, clearError } from "../../../slices/vendorsSlice";
-import { useVendors } from "../../../hooks/useVendors";
 import {
-  updateVendorSchema,
-} from "../../../validation/vendors";
+  updateVendor,
+  clearError,
+  clearCurrentVendor,
+} from "../../../slices/vendorsSlice";
+import { useVendors } from "../../../hooks/useVendors";
+import { updateVendorSchema } from "../../../validation/vendors";
 import CustomInput from "../../../components/CustomInput";
 import CustomButton from "../../../components/CustomButton";
 import type { AppDispatch } from "../../../store";
-import axios from "axios";
-import { API_BASE } from "../../../utils/auth";
 
 const EditVendorPage = () => {
   const { id } = useParams<{ id: string }>();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { error: reduxError } = useVendors();
+  const { error: reduxError, currentVendor, getVendorById } = useVendors();
   const form = useForm({
     resolver: zodResolver(updateVendorSchema),
   });
@@ -30,42 +30,39 @@ const EditVendorPage = () => {
     reset,
   } = form;
 
-  const [apiError, setApiError] = useState("");
-
-  // Clear redux error on mount
+  // Clear redux error and current vendor on mount/unmount
   useEffect(() => {
     dispatch(clearError());
+    return () => {
+      dispatch(clearCurrentVendor());
+    };
   }, [dispatch]);
 
-  // Fetch vendor by ID and set form values
+  // Fetch vendor by ID using the hook
   useEffect(() => {
-    if (!id) return;
-    const fetchVendor = async () => {
-      try {
-        const response = await axios.get(`/v1/vendors/${id}`, {
-          baseURL: API_BASE,
-        });
-        const vendorData = response.data.vendor;
-        reset({
-          name: vendorData.name,
-          phone: vendorData.phone,
-          email: vendorData.email || "",
-          address: vendorData.address || "",
-          gstin: vendorData.gstin || "",
-          companyName: vendorData.companyName,
-          city: vendorData.city || "",
-          state: vendorData.state || "",
-          country: vendorData.country || "India",
-        });
-        setApiError("");
-      } catch (err) {
-        setApiError(err.response?.data?.error || "Vendor not found");
-      }
-    };
-    fetchVendor();
-  }, [id, reset]);
+    if (id) {
+      getVendorById(id);
+    }
+  }, [id, getVendorById]);
 
-  const onSubmit = async (data) => {
+  // Reset form when currentVendor is loaded
+  useEffect(() => {
+    if (currentVendor) {
+      reset({
+        name: currentVendor.name,
+        phone: currentVendor.phone,
+        email: currentVendor.email || "",
+        address: currentVendor.address || "",
+        gstin: currentVendor.gstin || "",
+        companyName: currentVendor.companyName,
+        city: currentVendor.city || "",
+        state: currentVendor.state || "",
+        country: currentVendor.country || "India",
+      });
+    }
+  }, [currentVendor, reset]);
+
+  const onSubmit = async (data: any) => {
     if (!id) return;
     try {
       await dispatch(updateVendor({ id, ...data })).unwrap();
@@ -80,12 +77,9 @@ const EditVendorPage = () => {
       <h1 className="text-3xl font-bold text-gray-800">Edit Vendor</h1>
       <div className="flex flex-col w-full bg-white space-y-6 p-6 rounded-md mx-auto">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {(reduxError || apiError) && (
-            <Alert severity="error" onClose={() => {
-              dispatch(clearError());
-              setApiError("");
-            }}>
-              {reduxError || apiError}
+          {reduxError && (
+            <Alert severity="error" onClose={() => dispatch(clearError())}>
+              {reduxError}
             </Alert>
           )}
 

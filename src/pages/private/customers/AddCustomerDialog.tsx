@@ -70,6 +70,12 @@ const AddCustomerDialog = ({
     }
   };
 
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleSubmit(onSubmit)(e);
+  };
+
   const handleClose = () => {
     if (isSubmitting) return;
     reset();
@@ -78,7 +84,7 @@ const AddCustomerDialog = ({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleFormSubmit}>
         <DialogTitle className="text-lg p-3 font-semibold">
           Add New Customer
         </DialogTitle>

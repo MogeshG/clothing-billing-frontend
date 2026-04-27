@@ -1,15 +1,26 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { setSideBarCollapsed, logout } from "../slices/appSlice";
 import { removeToken } from "../utils/auth";
 import MenuIcon from "@mui/icons-material/Menu";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import LogoutIcon from "@mui/icons-material/Logout";
+import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+} from "@mui/material";
 import type { RootState } from "../store";
 
 const Header = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
 
   const { companyName, sideBarCollapsed, user } = useSelector(
     (state: RootState) => state.app,
@@ -19,7 +30,15 @@ const Header = () => {
     dispatch(setSideBarCollapsed(!sideBarCollapsed));
   };
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setOpenLogoutDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenLogoutDialog(false);
+  };
+
+  const handleConfirmLogout = () => {
     removeToken();
     dispatch(logout());
     navigate("/login");
@@ -58,15 +77,39 @@ const Header = () => {
 
         {/* Logout */}
         <button
-          onClick={handleLogout}
+          onClick={handleLogoutClick}
           className="p-2 rounded-md hover:bg-red-50 text-red-500 transition"
         >
           <LogoutIcon />
         </button>
       </div>
+
+      {/* Logout Confirm Dialog */}
+      <Dialog open={openLogoutDialog} onClose={handleCloseDialog}>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <LogoutOutlined color="error" />
+          Confirm Logout
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography color="text.secondary">
+            Are you sure you want to log out?
+          </Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button
+            onClick={handleConfirmLogout}
+            variant="contained"
+            color="error"
+          >
+            Logout
+          </Button>
+        </DialogActions>
+      </Dialog>
     </header>
   );
 };
 
 export default Header;
-

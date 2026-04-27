@@ -9,6 +9,7 @@ interface VendorsState {
   loading: boolean;
   error: string | null;
   selectedVendors: string[];
+  currentVendor: Vendor | null;
   pagination: {
     page: number;
     limit: number;
@@ -22,6 +23,7 @@ const initialState: VendorsState = {
   loading: false,
   error: null,
   selectedVendors: [],
+  currentVendor: null,
   pagination: null,
 };
 
@@ -46,7 +48,7 @@ export const addVendor = createAsyncThunk(
   "vendors/addVendor",
   async (vendorData: AddVendorForm, { rejectWithValue }) => {
     try {
-      const response = await api.post("/v1/vendors", vendorData);
+      const response = await api.post("/vendors", vendorData);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(
@@ -60,7 +62,7 @@ export const updateVendor = createAsyncThunk(
   "vendors/updateVendor",
   async (vendor: Partial<Vendor> & { id: string }, { rejectWithValue }) => {
     try {
-      const response = await api.put(`/v1/vendors/${vendor.id}`, vendor);
+      const response = await api.put(`/vendors/${vendor.id}`, vendor);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(
@@ -70,11 +72,25 @@ export const updateVendor = createAsyncThunk(
   },
 );
 
+export const fetchVendorById = createAsyncThunk(
+  "vendors/fetchVendorById",
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/vendors/${id}`);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to fetch vendor",
+      );
+    }
+  },
+);
+
 export const deleteVendors = createAsyncThunk(
   "vendors/deleteVendors",
   async (vendorIds: string[], { rejectWithValue }) => {
     try {
-      const promises = vendorIds.map((id) => api.delete(`/v1/vendors/${id}`));
+      const promises = vendorIds.map((id) => api.delete(`/vendors/${id}`));
       await Promise.all(promises);
       return vendorIds;
     } catch (error: any) {
@@ -91,6 +107,9 @@ const vendorsSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    clearCurrentVendor: (state) => {
+      state.currentVendor = null;
     },
     setSelectedVendors: (state, action: PayloadAction<string[]>) => {
       state.selectedVendors = action.payload;
@@ -129,6 +148,19 @@ const vendorsSlice = createSlice({
       .addCase(updateVendor.rejected, (state, action) => {
         state.error = action.payload as string;
       })
+      .addCase(fetchVendorById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchVendorById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentVendor = action.payload.vendor || null;
+      })
+      .addCase(fetchVendorById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        state.currentVendor = null;
+      })
       .addCase(deleteVendors.fulfilled, (state, action) => {
         state.vendors = state.vendors.filter(
           (v) => !action.payload.includes(v.id),
@@ -141,5 +173,6 @@ const vendorsSlice = createSlice({
   },
 });
 
-export const { clearError, setSelectedVendors } = vendorsSlice.actions;
+export const { clearError, clearCurrentVendor, setSelectedVendors } =
+  vendorsSlice.actions;
 export default vendorsSlice.reducer;

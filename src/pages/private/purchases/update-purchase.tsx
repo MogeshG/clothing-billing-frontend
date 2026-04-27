@@ -209,7 +209,7 @@ const UpdatePurchasePage = () => {
     products.forEach((product: Product) => {
       product.variant.forEach((v) => {
         options.push({
-          label: `${product.name} - ${v.sku || v.size}/${v.color}`,
+          label: `${product.name}/${v.color} - ${v.size}`,
           value: v.id,
           variant: v,
         });
@@ -226,7 +226,7 @@ const UpdatePurchasePage = () => {
         const product = products.find((p) =>
           p.variant.some((vv) => vv.id === v.id),
         );
-        const generatedName = `${product?.name || ""} - ${v.sku || v.size}/${v.color}`;
+        const generatedName = `${product.name}/${v.color} - ${v.size}`;
         updateItem(index, "itemName", generatedName);
         updateItem(index, "sku", v.sku || "");
         updateItem(index, "size", v.size);
@@ -244,8 +244,8 @@ const UpdatePurchasePage = () => {
         const taxRate = product?.taxInclusive
           ? 0
           : ((Number(product?.cgstPercent) || 0) +
-            Number(product?.sgstPercent || 0)) /
-          100;
+              Number(product?.sgstPercent || 0)) /
+            100;
         updateItem(
           index,
           "total",
@@ -572,7 +572,7 @@ const UpdatePurchasePage = () => {
                           getLabel={(option) =>
                             typeof option === "string" ? option : option.label
                           }
-                          onChange={() => { }}
+                          onChange={() => {}}
                           onSelect={(opt) => {
                             if (opt && typeof opt !== "string") {
                               handleVariantSelect(index, opt.value);

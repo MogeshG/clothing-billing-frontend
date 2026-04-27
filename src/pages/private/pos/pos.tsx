@@ -35,6 +35,7 @@ import type { ItemForm } from "./ItemForm";
 import { useBatches } from "../../../hooks/useBatches";
 import CustomDatePicker from "../../../components/CustomDatePicker";
 import DeleteIcon from "@mui/icons-material/Delete";
+import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import type { AppDispatch } from "../../../store";
 import type { Customer } from "../../../types/customer";
 import type { Dayjs } from "dayjs";
@@ -105,7 +106,8 @@ const POSPage = () => {
   const handleReset = useCallback(() => {
     setItems([]);
     setAmountPaid(0);
-    setBillDiscount(0);
+    setBillDiscountInput(0);
+    setBillDiscountType("AMOUNT");
     setCurrentDraftId(null);
     setSelectedCustomer(null);
     setErrors({});
@@ -159,55 +161,96 @@ const POSPage = () => {
       .slice(0, 10);
   }, [activeBatches, batchSearch, items]);
 
-  const handleAddBatch = useCallback((batch: Batch, qty: number) => {
-    const itemInCart = items.find((item) => item.batchNo === batch.batchNo);
-    const totalAvailable =
-      batch.remainingQuantity + (itemInCart?.quantity || 0);
+  const handleAddBatch = useCallback(
+    (batch: Batch, qty: number) => {
+      const itemInCart = items.find((item) => item.batchNo === batch.batchNo);
+      const totalAvailable =
+        batch.remainingQuantity + (itemInCart?.quantity || 0);
 
-    if (qty < 0 || qty > totalAvailable || !Number.isFinite(qty)) return;
+      if (qty < 0 || qty > totalAvailable || !Number.isFinite(qty)) return;
 
-    const newItem: ItemForm = {
-      productName: batch.productName,
-      variantSku: batch.variantSku || "",
-      barcode: batch.barcode,
-      hsnCode: batch.hsnCode,
-      batchNo: batch.batchNo,
-      expiryDate: batch.expiryDate,
-      quantity: qty,
-      price: batch.sellingPrice,
-      discount: 0,
-      cgstPercent: batch.cgstPercent || 0,
-      sgstPercent: batch.sgstPercent || 0,
-      igstPercent: batch.igstPercent || 0,
-      taxInclusive: batch.taxInclusive || false,
-      total: 0,
-    };
-    // Recalc total
-    const subtotal = newItem.price * newItem.quantity - newItem.discount;
-    const taxRate = newItem.taxInclusive
-      ? 0
-      : (newItem.cgstPercent + newItem.sgstPercent) / 100;
-    newItem.total = isFinite(subtotal) ? subtotal * (1 + taxRate) : 0;
+      const newItem: ItemForm = {
+        productName: batch.productName,
+        variantSku: batch.variantSku || "",
+        barcode: batch.barcode,
+        hsnCode: batch.hsnCode,
+        batchNo: batch.batchNo,
+        expiryDate: batch.expiryDate,
+        quantity: qty,
+        price: batch.sellingPrice,
+        discount: 0,
+        cgstPercent: batch.cgstPercent || 0,
+        sgstPercent: batch.sgstPercent || 0,
+        igstPercent: batch.igstPercent || 0,
+        taxInclusive: batch.taxInclusive || false,
+        total: 0,
+      };
+      // Recalc total
+      const subtotal = newItem.price * newItem.quantity - newItem.discount;
+      const taxRate = newItem.taxInclusive
+        ? 0
+        : (newItem.cgstPercent + newItem.sgstPercent) / 100;
+      newItem.total = isFinite(subtotal) ? subtotal * (1 + taxRate) : 0;
 
-    setItems((prevItems) => {
-      if (qty === 0) {
-        return prevItems.filter((item) => item.batchNo !== batch.batchNo);
+      setItems((prevItems) => {
+        if (qty === 0) {
+          return prevItems.filter((item) => item.batchNo !== batch.batchNo);
+        }
+        const idx = prevItems.findIndex(
+          (item) =>
+            (item.batchNo && item.batchNo === batch.batchNo) ||
+            (!item.batchNo && item.variantSku === batch.variantSku),
+        );
+        if (idx >= 0) {
+          const updated = [...prevItems];
+          updated[idx] = newItem;
+          return updated;
+        }
+        return [...prevItems, newItem];
+      });
+    },
+    [items],
+  );
+
+  const handleBatchSearchKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter" && batchSearch.trim()) {
+        const search = batchSearch.trim().toLowerCase();
+
+        const matches = activeBatches.filter(
+          (batch) =>
+            (batch.productName.toLowerCase().includes(search) ||
+              batch.batchNo.toLowerCase().includes(search) ||
+              batch.barcode.toLowerCase() === search) &&
+            batch.remainingQuantity > 0,
+        );
+
+        // Prioritize exact barcode match, otherwise add if only one result
+        const exactMatch = matches.find(
+          (batch) => batch.barcode.toLowerCase() === search,
+        );
+        // const batchToAdd =
+        //   exactMatch || (matches.length === 1 ? matches[0] : null);
+        if (exactMatch) {
+          const existingItem = items.find((item) =>
+            item.batchNo
+              ? item.batchNo === exactMatch.batchNo
+              : item.variantSku === exactMatch.variantSku,
+          );
+          const newQty = existingItem ? existingItem.quantity + 1 : 1;
+          if (newQty <= exactMatch.remainingQuantity)
+            handleAddBatch(exactMatch, newQty);
+          setBatchSearch("");
+        }
       }
-      const idx = prevItems.findIndex(
-        (item) =>
-          (item.batchNo && item.batchNo === batch.batchNo) ||
-          (!item.batchNo && item.variantSku === batch.variantSku),
-      );
-      if (idx >= 0) {
-        const updated = [...prevItems];
-        updated[idx] = newItem;
-        return updated;
-      }
-      return [...prevItems, newItem];
-    });
-  }, [items]);
+    },
+    [batchSearch, activeBatches, handleAddBatch, items],
+  );
 
-  const [billDiscount, setBillDiscount] = useState(0);
+  const [billDiscountType, setBillDiscountType] = useState<
+    "AMOUNT" | "PERCENT"
+  >("AMOUNT");
+  const [billDiscountInput, setBillDiscountInput] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [amountPaid, setAmountPaid] = useState(0);
   const [invoiceType, setInvoiceType] = useState<"a4" | "thermal">(
@@ -221,7 +264,7 @@ const POSPage = () => {
     }
   }, [preferences.invoiceType]);
 
-  const calculateTotals = useMemo(() => {
+  const baseTotals = useMemo(() => {
     const subTotal = items.reduce((sum, item) => {
       const lineAmount = item.price * item.quantity - item.discount;
       if (item.taxInclusive) {
@@ -243,17 +286,30 @@ const POSPage = () => {
       }
       return sum + lineAmount * taxRate;
     }, 0);
-    const grandTotal = subTotal + taxTotal - billDiscount;
+    return { subTotal, taxTotal };
+  }, [items]);
+
+  const billDiscount = useMemo(() => {
+    if (billDiscountType === "AMOUNT") {
+      return Number(billDiscountInput.toFixed(2));
+    }
+    const raw =
+      ((baseTotals.subTotal + baseTotals.taxTotal) * billDiscountInput) / 100;
+    return Number(raw.toFixed(2));
+  }, [billDiscountType, billDiscountInput, baseTotals]);
+
+  const calculateTotals = useMemo(() => {
+    const grandTotal = baseTotals.subTotal + baseTotals.taxTotal - billDiscount;
     const due = Math.max(0, grandTotal - amountPaid);
     return {
-      subTotal,
-      taxTotal,
+      subTotal: baseTotals.subTotal,
+      taxTotal: baseTotals.taxTotal,
       discount: billDiscount,
       total: grandTotal,
       paid: amountPaid,
       due,
     };
-  }, [items, billDiscount, amountPaid]);
+  }, [baseTotals, billDiscount, amountPaid]);
 
   const validateForm = (mode: "DRAFT" | "COMPLETED"): boolean => {
     const newErrors: Record<string, string> = {};
@@ -328,7 +384,8 @@ const POSPage = () => {
       }),
     );
     setAmountPaid(Number(draft.paidAmount || 0));
-    setBillDiscount(Number(draft.discount || 0));
+    setBillDiscountType("AMOUNT");
+    setBillDiscountInput(Number(draft.discount || 0));
     setCurrentDraftId(draft.id);
     setSelectedCustomer({
       id: "", // We don't have the customer ID in the invoice object usually, but we have the details
@@ -346,7 +403,7 @@ const POSPage = () => {
 
     setIsSubmitting(true);
     try {
-      await dispatch(generateBill({ id, type: invoiceType })).unwrap();
+      await dispatch(generateBill({ id })).unwrap();
       setShowBillModal(true);
     } catch (err) {
       console.error("Generate bill failed:", err);
@@ -544,7 +601,10 @@ const POSPage = () => {
                   label="Search Available Batches"
                   value={batchSearch}
                   onChange={(e) => setBatchSearch(e.target.value)}
+                  onKeyDown={handleBatchSearchKeyDown}
                   placeholder="Search by product, batch no, barcode..."
+                  endIcon={<QrCodeScannerIcon />}
+                  autoFocus
                 />
 
                 {batchesLoading ? (
@@ -569,7 +629,7 @@ const POSPage = () => {
               {/* Right Column: Added Products Table */}
               <Grid size={{ xs: 12, lg: 9, md: 9 }} className="space-y-2">
                 {items.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg h-full">
                     No items added yet. Select batches from left to add.
                   </div>
                 ) : (
@@ -683,17 +743,53 @@ const POSPage = () => {
             <Grid container spacing={3}>
               {/* Bill Discount - Top Right */}
               <Grid size={{ xs: 12, sm: 4, md: 4 }}>
-                <CustomInput
-                  label="Bill Discount (₹)"
-                  type="number"
-                  value={billDiscount}
-                  onChange={(e) =>
-                    setBillDiscount(
-                      Number(Number(e.target.value || 0).toFixed(2)),
-                    )
-                  }
-                  placeholder="0"
-                />
+                <div className="flex gap-2 items-start">
+                  <div className="w-24">
+                    <CustomSelect
+                      label="Type"
+                      value={billDiscountType}
+                      onChange={(e) =>
+                        setBillDiscountType(
+                          e.target.value as "AMOUNT" | "PERCENT",
+                        )
+                      }
+                      options={[
+                        { value: "AMOUNT", label: "₹" },
+                        { value: "PERCENT", label: "%" },
+                      ]}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <CustomInput
+                      label={`Bill Discount (${billDiscountType === "AMOUNT" ? "₹" : "%"})`}
+                      type="number"
+                      value={billDiscountInput}
+                      onChange={(e) => {
+                        const val = Number(e.target.value || 0);
+                        if (billDiscountType === "AMOUNT") {
+                          setBillDiscountInput(Number(val.toFixed(2)));
+                        } else {
+                          setBillDiscountInput(Number(val.toFixed(1)));
+                        }
+                      }}
+                      placeholder="0"
+                    />
+                    {billDiscountType === "PERCENT" ? (
+                      <div className="text-xs text-gray-500 mt-1 text-right">
+                        = {formatRupee(billDiscount)}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500 mt-1 text-right">
+                        ={" "}
+                        {(
+                          ((billDiscount || 0) / (baseTotals.subTotal || 1)) *
+                          100
+                        ).toFixed(1)}{" "}
+                        %
+                      </div>
+                    )}
+                  </div>
+                </div>
               </Grid>
               {/* Payment Method - Middle Left */}
               <Grid size={{ xs: 12, sm: 4, md: 4 }}>
@@ -827,7 +923,9 @@ const POSPage = () => {
                           invoiceData: submitData,
                         }),
                       )
-                    : dispatch(createDraftInvoice(submitData as AddInvoiceForm));
+                    : dispatch(
+                        createDraftInvoice(submitData as AddInvoiceForm),
+                      );
 
                   action
                     .unwrap()

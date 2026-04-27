@@ -1,106 +1,69 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import PrintIcon from "@mui/icons-material/Print";
-import formatRupee from "../../../utils/formatRupee";
-import dayjs from "dayjs";
 import type { Invoice } from "../../../types/invoice";
 import CustomButton from "../../../components/CustomButton";
-import { mockInvoices } from "./mockInvoices";
-import { Box, Drawer, IconButton, Typography } from "@mui/material";
+import {
+  Box,
+  CircularProgress,
+  Drawer,
+  IconButton,
+  Typography,
+} from "@mui/material";
+import { useInvoices } from "../../../hooks/useInvoices";
+import { useDispatch } from "react-redux";
+import type { AppDispatch } from "../../../store";
 
 const ViewInvoiceDrawer = ({
-  invoiceId,
+  invoice,
   open,
   onClose,
 }: {
-  invoiceId: string;
+  invoice: Invoice | null;
   open: boolean;
   onClose: () => void;
 }) => {
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [iframeSrc, setIframeSrc] = useState("");
+  const dispatch = useDispatch<AppDispatch>();
+  const { generateBill, billHtml, clearBillHtml } = useInvoices();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [iframeSrc, setIframeSrc] = useState("");
 
+  // Fetch rendered bill HTML from server when drawer opens
   useEffect(() => {
-    if (open && invoiceId) {
-      const foundInvoice = mockInvoices.find((inv) => inv.id === invoiceId);
-      setInvoice(foundInvoice || null);
+    if (open && invoice) {
+      setIsGenerating(true);
+      dispatch(generateBill({ id: invoice.id }))
+        .unwrap()
+        .catch(() => {})
+        .finally(() => setIsGenerating(false));
     }
-  }, [invoiceId, open]);
 
-  const generateIframe = () => {
-    if (!invoice) return;
+    if (!open) {
+      dispatch(clearBillHtml());
+      if (iframeSrc) {
+        URL.revokeObjectURL(iframeSrc);
+        setIframeSrc("");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, invoice?.id]);
 
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Invoice ${invoice.invoiceNo}</title>
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    h1, h2, h3 { margin: 5px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; }
-    th { background: #f5f5f5; }
-    .right { text-align: right; }
-    .total { font-weight: bold; font-size: 18px; color: green; }
-  </style>
-</head>
-<body>
-
-  <h1>Invoice #${invoice.invoiceNo}</h1>
-  <p>Date: ${dayjs(invoice.invoiceDate).format("DD MMM YYYY, HH:mm")}</p>
-
-  <h3>Customer</h3>
-  <p>${invoice.customerName || "Walk-in Customer"}</p>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Item</th>
-        <th>Qty</th>
-        <th>Rate</th>
-        <th class="right">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${invoice.items
-        .map(
-          (item) => `
-        <tr>
-          <td>${item.productName}</td>
-          <td>${item.quantity}</td>
-          <td>${formatRupee(item.price)}</td>
-          <td class="right">${formatRupee(item.total)}</td>
-        </tr>
-      `,
-        )
-        .join("")}
-    </tbody>
-  </table>
-
-  <p class="total">Total: ${formatRupee(invoice.totalAmount)}</p>
-  <p>Paid: ${formatRupee(invoice.paidAmount)}</p>
-  ${
-    invoice.balanceDue > 0
-      ? `<p style="color:red;">Balance: ${formatRupee(invoice.balanceDue)}</p>`
-      : ""
-  }
-
-</body>
-</html>
-`;
-
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    setIframeSrc(url);
-  };
-
+  // Convert billHtml to blob URL when it arrives
   useEffect(() => {
-    if (invoice) {
-      generateIframe();
+    if (billHtml) {
+      const blob = new Blob([billHtml], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      setIframeSrc(url);
     }
-  }, [invoice]);
+  }, [billHtml]);
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (iframeSrc) URL.revokeObjectURL(iframeSrc);
+    };
+  }, [iframeSrc]);
 
   const handlePrint = () => {
     iframeRef.current?.contentWindow?.print();
@@ -136,8 +99,9 @@ const ViewInvoiceDrawer = ({
               variant="outlined"
               startIcon={<PrintIcon />}
               onClick={handlePrint}
+              disabled={!iframeSrc}
             >
-              Print
+              {"Print"}
             </CustomButton>
 
             <IconButton onClick={onClose}>
@@ -146,8 +110,29 @@ const ViewInvoiceDrawer = ({
           </Box>
         </Box>
 
-        {/* Iframe Content ONLY */}
-        <Box sx={{ flex: 1 }}>
+        {/* Content */}
+        <Box sx={{ flex: 1, position: "relative" }}>
+          {isGenerating && (
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 2,
+                bgcolor: "background.paper",
+                zIndex: 1,
+              }}
+            >
+              <CircularProgress size={40} />
+              <Typography variant="body2" color="text.secondary">
+                Generating bill...
+              </Typography>
+            </Box>
+          )}
+
           {iframeSrc && (
             <iframe
               ref={iframeRef}

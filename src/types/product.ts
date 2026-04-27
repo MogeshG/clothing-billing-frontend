@@ -41,7 +41,7 @@ export type ProductVariant = {
 export type ProductVariantInput = {
   size: string;
   color: string;
-  barcode: string;
+  // barcode: string;
   sku?: string | null;
   costPrice: number;
   sellingPrice: number;

@@ -80,6 +80,7 @@ const SettingsPage: React.FC = () => {
         severity: "success",
       });
     } catch (error) {
+      console.log(error);
       setSnackbar({
         open: true,
         message: "Failed to save settings.",
@@ -148,14 +149,17 @@ const SettingsPage: React.FC = () => {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  {/* <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+                  <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                     <CustomInput
                       label="Company Name"
                       value={localPrefs.companyName || ""}
-                      onChange={(e) => handleChange("companyName", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("companyName", e.target.value)
+                      }
                       placeholder="e.g. My Clothing Store"
+                      disabled
                     />
-                  </Grid> */}
+                  </Grid>
                   <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                     <CustomInput
                       label="Mobile Number 1"
@@ -244,12 +248,12 @@ const SettingsPage: React.FC = () => {
                     <CustomInput
                       label="Low stock threshold"
                       type="number"
-                      value={localPrefs.lowStockThreshold || 0}
+                      value={localPrefs.lowStockLimit || 0}
                       onChange={(e) => {
                         const val = e.target.value;
                         const num = Number(val);
                         if (num < 0) return;
-                        handleChange("lowStockThreshold", String(num));
+                        handleChange("lowStockLimit", String(num));
                       }}
                     />
                   </Grid>

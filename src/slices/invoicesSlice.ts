@@ -134,13 +134,11 @@ export const deleteInvoice = createAsyncThunk(
 
 export const generateBill = createAsyncThunk<
   string,
-  { id: string; type: "a4" | "thermal" },
+  { id: string },
   { rejectValue: string }
->("invoices/generateBill", async ({ id, type }, { rejectWithValue }) => {
+>("invoices/generateBill", async ({ id }, { rejectWithValue }) => {
   try {
-    const response = await api.get(`/invoices/${id}/bill`, {
-      params: { type },
-    });
+    const response = await api.get(`/invoices/${id}/bill`);
     return response.data.html as string;
   } catch (error) {
     const err = error as Error;

@@ -1,19 +1,56 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useMemo, useState } from "react";
-import { Chip, IconButton } from "@mui/material";
+import React, { useCallback, useMemo, useState } from "react";
+import { Alert, Chip, IconButton } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import dayjs from "dayjs";
 import formatRupee from "../../../utils/formatRupee";
 import { CustomTable } from "../../../components/CustomTable";
 import type { MRT_ColumnDef } from "material-react-table";
 import ViewInvoiceDrawer from "./viewInvoiceDrawer";
 import type { Invoice } from "../../../types/invoice";
-
-import { mockInvoices } from "./mockInvoices";
+import { useInvoices } from "../../../hooks/useInvoices";
+import { useDispatch } from "react-redux";
+import type { AppDispatch } from "../../../store";
+import PermissionGuard from "../../../components/PermissionGuard";
+import { InlineLoader } from "../../../components/CustomLoader";
 
 const InvoicesPage: React.FC = () => {
-  const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
+  const dispatch = useDispatch<AppDispatch>();
+  const {
+    invoices,
+    drafts,
+    loading,
+    error,
+    refetch,
+    clearError,
+    deleteInvoice,
+  } = useInvoices();
+
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const allInvoices = useMemo(() => {
+    const combined = [...invoices, ...drafts];
+    return combined.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [invoices, drafts]);
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!window.confirm("Are you sure you want to delete this invoice?"))
+        return;
+      try {
+        await dispatch(deleteInvoice(id)).unwrap();
+        refetch();
+      } catch (err) {
+        console.error("Delete invoice failed", err);
+      }
+    },
+    [dispatch, deleteInvoice, refetch],
+  );
 
   const columns = useMemo<MRT_ColumnDef<Invoice>[]>(
     () => [
@@ -58,6 +95,7 @@ const InvoicesPage: React.FC = () => {
         accessorKey: "items",
         header: "Items",
         Cell: ({ row }) => <span>{row.original.items.length}</span>,
+        size: 120,
       },
       {
         accessorKey: "totalAmount",
@@ -73,6 +111,7 @@ const InvoicesPage: React.FC = () => {
         header: "Date",
         Cell: ({ row }) =>
           dayjs(row.original.invoiceDate).format("MMM DD, YYYY"),
+        size: 140,
       },
     ],
     [],
@@ -82,27 +121,57 @@ const InvoicesPage: React.FC = () => {
     <div className="flex flex-col w-full space-y-4 p-3 overflow-y-auto">
       <h1 className="text-3xl font-bold text-gray-900">Invoices</h1>
 
+      {error && (
+        <Alert severity="error" onClose={() => dispatch(clearError())}>
+          {error}
+        </Alert>
+      )}
+
+      {loading && <InlineLoader label="Loading invoices..." />}
+
       <CustomTable
         columns={columns}
-        data={mockInvoices}
+        data={allInvoices}
+        isLoading={loading}
         enableRowSelection={false}
         enableRowActions
         renderRowActions={({ row }) => (
-          <IconButton
-            size="small"
-            onClick={() => {
-              setSelectedInvoice(row.original.id);
-              setDrawerOpen(true);
-            }}
-            title="View Invoice"
-          >
-            <VisibilityIcon fontSize="small" />
-          </IconButton>
+          <div className="flex gap-1">
+            <IconButton
+              size="small"
+              onClick={() => {
+                setSelectedInvoice(row.original);
+                setDrawerOpen(true);
+              }}
+              title="View Invoice"
+            >
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+            {row.original.status !== "COMPLETED" && (
+              <PermissionGuard module="Sales" action="delete">
+                <IconButton
+                  size="small"
+                  onClick={() => handleDelete(row.original.id)}
+                  title="Delete Invoice"
+                  sx={{
+                    border: 1,
+                    borderColor: "error.main",
+                    borderRadius: 1,
+                    color: "error.main",
+                    width: 36,
+                    height: 36,
+                  }}
+                >
+                  <DeleteOutlined fontSize="small" />
+                </IconButton>
+              </PermissionGuard>
+            )}
+          </div>
         )}
       />
 
       <ViewInvoiceDrawer
-        invoiceId={selectedInvoice || ""}
+        invoice={selectedInvoice}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       />

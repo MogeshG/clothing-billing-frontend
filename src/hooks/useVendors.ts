@@ -1,17 +1,23 @@
 import { useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
-import { fetchVendors } from "../slices/vendorsSlice";
+import { fetchVendors, fetchVendorById } from "../slices/vendorsSlice";
 
 export const useVendors = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { vendors, loading, error, selectedVendors } = useSelector(
-    (state: RootState) => state.vendors,
-  );
+  const { vendors, loading, error, selectedVendors, currentVendor } =
+    useSelector((state: RootState) => state.vendors);
 
   const fetchWithParams = useCallback(
-    (params: Parameters<typeof fetchVendors>[0] = {}) => {
-      dispatch(fetchVendors(params));
+    (params?: { search?: string; page?: number; limit?: number }) => {
+      dispatch(fetchVendors(params || {}));
+    },
+    [dispatch],
+  );
+
+  const getVendorById = useCallback(
+    (id: string) => {
+      dispatch(fetchVendorById(id));
     },
     [dispatch],
   );
@@ -25,6 +31,8 @@ export const useVendors = () => {
     loading,
     error,
     selectedVendors,
-    refetch: () => dispatch(fetchVendors()),
+    currentVendor,
+    refetch: () => dispatch(fetchVendors({})),
+    getVendorById,
   };
 };

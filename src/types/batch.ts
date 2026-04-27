@@ -7,6 +7,7 @@ export interface Batch {
   batchNo: string;
   barcode: string;
   status: "PENDING" | "ACTIVE" | "BLOCKED" | "EXPIRED";
+  isActivated: boolean;
   purchaseItemId?: string;
   purchaseNo?: string;
   vendorName?: string;

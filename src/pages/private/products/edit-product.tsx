@@ -15,7 +15,6 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import { Percent } from "@mui/icons-material";
 import { updateProduct, clearError } from "../../../slices/productsSlice";
 import { useProducts } from "../../../hooks/useProducts";
@@ -44,7 +43,7 @@ const EditProductPage = () => {
   const [newVariant, setNewVariant] = useState<Partial<ProductVariantInput>>({
     size: "",
     color: "",
-    barcode: "",
+    // barcode: "",
     costPrice: 0,
     sellingPrice: 0,
     mrp: 0,
@@ -72,7 +71,7 @@ const EditProductPage = () => {
         (product.variant || []).map((v: any) => ({
           size: v.size,
           color: v.color,
-          barcode: v.barcode,
+          // barcode: v.barcode,
           sku: v.sku || "",
           costPrice: v.cost_price || v.costPrice || 0,
           sellingPrice: v.selling_price || v.sellingPrice || 0,
@@ -91,7 +90,7 @@ const EditProductPage = () => {
     setNewVariant({
       size: "",
       color: "",
-      barcode: "",
+      // barcode: "",
       costPrice: 0,
       sellingPrice: 0,
       mrp: 0,
@@ -106,8 +105,8 @@ const EditProductPage = () => {
     const variantErrorsList: Record<string, string> = {};
     if (!newVariant.size?.trim()) variantErrorsList.size = "Size required";
     if (!newVariant.color?.trim()) variantErrorsList.color = "Color required";
-    if (!newVariant.barcode?.trim())
-      variantErrorsList.barcode = "Barcode required";
+    // if (!newVariant.barcode?.trim())
+    //   variantErrorsList.barcode = "Barcode required";
     if (typeof newVariant.costPrice !== "number" || newVariant.costPrice! <= 0)
       variantErrorsList.costPrice = "Valid cost price required";
     if (
@@ -126,7 +125,7 @@ const EditProductPage = () => {
     const completeVariant: ProductVariantInput = {
       size: newVariant.size!,
       color: newVariant.color!,
-      barcode: newVariant.barcode!,
+      // barcode: newVariant.barcode!,
       sku: newVariant.sku || null,
       costPrice: newVariant.costPrice!,
       sellingPrice: newVariant.sellingPrice!,
@@ -230,7 +229,7 @@ const EditProductPage = () => {
         const vErrors: Record<string, string> = {};
         if (!variant.size.trim()) vErrors.size = "Size required";
         if (!variant.color.trim()) vErrors.color = "Color required";
-        if (!variant.barcode.trim()) vErrors.barcode = "Barcode required";
+        // if (!variant.barcode.trim()) vErrors.barcode = "Barcode required";
         if (variant.costPrice <= 0)
           vErrors.costPrice = "Valid cost price required";
         if (variant.sellingPrice <= 0)
@@ -257,7 +256,7 @@ const EditProductPage = () => {
     const transformedVariants = variants.map((v) => ({
       size: v.size,
       color: v.color,
-      barcode: v.barcode,
+      // barcode: v.barcode,
       sku: v.sku,
       cost_price: v.costPrice,
       selling_price: v.sellingPrice,
@@ -352,7 +351,7 @@ const EditProductPage = () => {
 
               <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                 <CustomInput
-                  label="SKU"
+                  label="SKU (Optional)"
                   placeholder="Enter SKU"
                   value={formData.sku || ""}
                   onChange={(e) => handleChange("sku", e.target.value)}
@@ -381,8 +380,6 @@ const EditProductPage = () => {
                   onSelect={(cat) => handleChange("categoryId", cat?.id || "")}
                   label="Category"
                   placeholder="Search category..."
-                  hasError={!!formErrors.categoryId}
-                  errorText={formErrors.categoryId}
                 />
               </Grid>
               <Grid size={{ xs: 12, md: 6, lg: 2 }}>
@@ -447,7 +444,7 @@ const EditProductPage = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 8, lg: 8 }}>
                 <CustomInput
                   label="Description"
                   placeholder="Enter product description"
@@ -466,20 +463,22 @@ const EditProductPage = () => {
                 <h2 className="text-xl font-semibold text-gray-700">
                   Variants Details
                 </h2>
-                <p className="text-sm text-gray-500">Manage variants</p>
+                <p className="text-sm text-gray-500">Add variants</p>
               </div>
-              <CustomButton
-                variant="outlined"
-                size="small"
-                className="h-fit! py-2!"
-                startIcon={<AddIcon />}
-                onClick={() => {
-                  setShowNewVariantForm(true);
-                  clearNewVariant();
-                }}
-              >
-                Add Variant
-              </CustomButton>
+              <div className="flex gap-2">
+                <CustomButton
+                  variant="outlined"
+                  size="small"
+                  className="h-fit! py-2!"
+                  startIcon={<AddIcon />}
+                  onClick={() => {
+                    setShowNewVariantForm(true);
+                    clearNewVariant();
+                  }}
+                >
+                  Add Another
+                </CustomButton>
+              </div>
             </div>
             {showNewVariantForm && (
               <>
@@ -526,7 +525,7 @@ const EditProductPage = () => {
                         required
                       />
                     </Grid>
-                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    {/* <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                       <CustomInput
                         label="Barcode"
                         placeholder="Enter barcode"
@@ -539,15 +538,16 @@ const EditProductPage = () => {
                         endIcon={<QrCodeScannerIcon />}
                         required
                       />
-                    </Grid>
+                    </Grid> */}
                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                       <CustomInput
                         label="SKU"
-                        placeholder="Optional"
+                        placeholder="Enter SK"
                         value={newVariant.sku || ""}
                         onChange={(e) =>
                           updateNewVariant("sku", e.target.value)
                         }
+                        required
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -634,9 +634,9 @@ const EditProductPage = () => {
                         <h4 className="font-medium">
                           {variant.size} - {variant.color}
                         </h4>
-                        <p className="text-sm text-gray-500">
+                        {/* <p className="text-sm text-gray-500">
                           Barcode: {variant.barcode}
-                        </p>
+                        </p> */}
                       </div>
                       <IconButton
                         size="small"
@@ -656,6 +656,7 @@ const EditProductPage = () => {
                           }
                           hasError={!!variantErrors[index]?.size}
                           errorText={variantErrors[index]?.size}
+                          required
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -667,9 +668,10 @@ const EditProductPage = () => {
                           }
                           hasError={!!variantErrors[index]?.color}
                           errorText={variantErrors[index]?.color}
+                          required
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      {/* <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <CustomInput
                           label="Barcode"
                           value={variant.barcode}
@@ -679,7 +681,7 @@ const EditProductPage = () => {
                           hasError={!!variantErrors[index]?.barcode}
                           errorText={variantErrors[index]?.barcode}
                         />
-                      </Grid>
+                      </Grid> */}
                       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <CustomInput
                           label="SKU"
@@ -687,6 +689,7 @@ const EditProductPage = () => {
                           onChange={(e) =>
                             updateVariantField(index, "sku", e.target.value)
                           }
+                          required
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6, md: 2 }}>
@@ -704,6 +707,7 @@ const EditProductPage = () => {
                           startIcon="₹"
                           hasError={!!variantErrors[index]?.costPrice}
                           errorText={variantErrors[index]?.costPrice}
+                          required
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6, md: 2 }}>
@@ -721,6 +725,7 @@ const EditProductPage = () => {
                           startIcon="₹"
                           hasError={!!variantErrors[index]?.sellingPrice}
                           errorText={variantErrors[index]?.sellingPrice}
+                          required
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6, md: 2 }}>
@@ -738,6 +743,7 @@ const EditProductPage = () => {
                           startIcon="₹"
                           hasError={!!variantErrors[index]?.mrp}
                           errorText={variantErrors[index]?.mrp}
+                          required
                         />
                       </Grid>
                     </Grid>

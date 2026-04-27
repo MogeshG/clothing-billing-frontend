@@ -1,9 +1,26 @@
 import { useState } from "react";
-import { Grid, Box, Typography, Alert, Tooltip, IconButton } from "@mui/material";
-import { Refresh, AccountBalanceWallet, ShoppingCart, People, Warning } from "@mui/icons-material";
+import {
+  Grid,
+  Box,
+  Typography,
+  Alert,
+  Tooltip,
+  IconButton,
+} from "@mui/material";
+import {
+  Refresh,
+  AccountBalanceWallet,
+  ShoppingCart,
+  People,
+  Warning,
+} from "@mui/icons-material";
 import dayjs from "dayjs";
 
-import { useAnalytics, type Period, type DateRange } from "../../../hooks/useAnalytics";
+import {
+  useAnalytics,
+  type Period,
+  type DateRange,
+} from "../../../hooks/useAnalytics";
 import formatRupee from "../../../utils/formatRupee";
 
 import StatCard from "./StatCard";
@@ -24,8 +41,16 @@ const DashboardPage = () => {
     endDate: dayjs().format("YYYY-MM-DD"),
   });
 
-  const { stats, salesReport, topProducts, lowStock, paymentBreakdown, loading, error, refetch } =
-    useAnalytics(period, period === "custom" ? customRange : undefined);
+  const {
+    stats,
+    salesReport,
+    topProducts,
+    lowStock,
+    paymentBreakdown,
+    loading,
+    error,
+    refetch,
+  } = useAnalytics(period, period === "custom" ? customRange : undefined);
 
   const statCards = [
     {
@@ -54,7 +79,7 @@ const DashboardPage = () => {
     {
       title: "Low Stock Alerts",
       value: lowStock.length ?? "—",
-      sub: `Items ≤ ${preferences.lowStockThreshold} units`,
+      sub: `Items ≤ ${preferences.lowStockLimit} units`,
       icon: <Warning />,
       gradient: "linear-gradient(135deg, #f7971e 0%, #ffd200 100%)",
     },
@@ -62,18 +87,31 @@ const DashboardPage = () => {
 
   return (
     <div className="flex flex-col w-full h-full overflow-y-auto">
-      <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: "grey.50", minHeight: "fit-content", }}>
+      <Box
+        sx={{
+          p: { xs: 2, md: 3 },
+          bgcolor: "grey.50",
+          minHeight: "fit-content",
+        }}
+      >
         <Box className="flex items-start sm:items-center xs:flex-col sm:flex-row  justify-between gap-3 mb-3">
           <Box>
             <Typography variant="h4" className="font-bold leading-1.2">
               Dashboard
             </Typography>
-            <Typography color="text.secondary" variant="body2" className="mt-0.5">
+            <Typography
+              color="text.secondary"
+              variant="body2"
+              className="mt-0.5"
+            >
               Real-time business insights
             </Typography>
           </Box>
           <Box className="flex items-center gap-2 flex-wrap">
-            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, mr: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary", fontWeight: 600, mr: 0.5 }}
+            >
               View by:
             </Typography>
             <PeriodSelector value={period} onChange={setPeriod} />
@@ -81,7 +119,11 @@ const DashboardPage = () => {
               <IconButton
                 onClick={refetch}
                 size="small"
-                sx={{ bgcolor: "#fff", border: "1px solid", borderColor: "grey.200" }}
+                sx={{
+                  bgcolor: "#fff",
+                  border: "1px solid",
+                  borderColor: "grey.200",
+                }}
               >
                 <Refresh fontSize="small" />
               </IconButton>
@@ -96,7 +138,11 @@ const DashboardPage = () => {
           </Box>
         )}
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
         <Grid className="w-full gap-4 mb-4" spacing={2} container>
           {statCards.map((card, i) => (
@@ -124,12 +170,20 @@ const DashboardPage = () => {
         <Grid container spacing={1} className="mb-2 items-stretch">
           <Grid size={{ xs: 12, md: 6 }}>
             <SectionCard title="🏆 Top Products — Units Sold">
-              <TopProductsChart data={topProducts} mode="units" loading={loading} />
+              <TopProductsChart
+                data={topProducts}
+                mode="units"
+                loading={loading}
+              />
             </SectionCard>
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <SectionCard title="💰 Top Products — Revenue">
-              <TopProductsChart data={topProducts} mode="revenue" loading={loading} />
+              <TopProductsChart
+                data={topProducts}
+                mode="revenue"
+                loading={loading}
+              />
             </SectionCard>
           </Grid>
         </Grid>

@@ -30,7 +30,6 @@ import { useMemo } from "react";
 import type { Unit } from "../../../types/unit";
 import { camelToSnake } from "../../../utils/caseConvert";
 
-
 const CreatePurchasePage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -187,7 +186,7 @@ const CreatePurchasePage = () => {
     products.forEach((product: Product) => {
       product.variant.forEach((v) => {
         options.push({
-          label: `${product.name} - ${v.sku || v.size}/${v.color}`,
+          label: `${product.name}/${v.color} - ${v.size}`,
           value: v.id,
           variant: v,
         });
@@ -207,7 +206,7 @@ const CreatePurchasePage = () => {
       const product = products.find((p) =>
         p.variant.some((vv) => vv.id === v.id),
       );
-      const generatedName = `${product?.name || ""} - ${v.sku || v.size}/${v.color}`;
+      const generatedName = `${product.name}/${v.color} - ${v.size}`;
       updateItem(index, "itemName", generatedName);
       updateItem(index, "sku", v.sku || "");
       updateItem(index, "size", v.size);
@@ -529,6 +528,7 @@ const CreatePurchasePage = () => {
                           updateItem(index, "itemType", newType);
                           resetItemDataOnTypeChange(index, newType);
                         }}
+                        // getLabel={}
                         options={[
                           { label: "Raw Material", value: "RAW" },
                           { label: "Finished Goods", value: "FINISHED" },
@@ -562,7 +562,7 @@ const CreatePurchasePage = () => {
                           getLabel={(option) =>
                             typeof option === "string" ? option : option.label
                           }
-                          onChange={() => { }} // No input change needed
+                          onChange={() => {}} // No input change needed
                           onSelect={(opt) => {
                             if (opt && typeof opt !== "string") {
                               const val = opt.value;
@@ -570,7 +570,7 @@ const CreatePurchasePage = () => {
                               handleVariantSelect(index, val);
                             }
                           }}
-                        // renderOption handled internally or customize differently if needed
+                          // renderOption handled internally or customize differently if needed
                         />
                       )}
                     </Grid>

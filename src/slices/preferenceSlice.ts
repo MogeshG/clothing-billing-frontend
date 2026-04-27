@@ -1,18 +1,21 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../utils/api";
+import { snakeToCamel, camelToSnake } from "../utils/caseConvert";
 
 export const fetchPreferences = createAsyncThunk(
   "preferences/fetchPreferences",
   async () => {
     const response = await api.get(`/preferences`);
-    return response.data;
+    return snakeToCamel(response.data) as Record<string, string>;
   },
 );
 
 export const updatePreferences = createAsyncThunk(
   "preferences/updatePreferences",
   async (preferences: Record<string, string>) => {
-    const response = await api.post(`/preferences/bulk`, { preferences });
+    const response = await api.post(`/preferences/bulk`, {
+      preferences: camelToSnake(preferences),
+    });
     return response.data;
   },
 );
@@ -49,7 +52,7 @@ const preferenceSlice = createSlice({
         state.error = action.error.message || "Failed to fetch preferences";
       })
       .addCase(updatePreferences.fulfilled, (state, action) => {
-        state.preferences = { ...state.preferences, ...action.payload };
+        state.preferences = { ...state.preferences, ...action.meta.arg };
       });
   },
 });

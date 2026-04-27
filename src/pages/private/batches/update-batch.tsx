@@ -213,7 +213,7 @@ const UpdateBatchPage = () => {
                     <IconButton
                       size="small"
                       onClick={handleGenerateBatchNo}
-                      disabled={generatingBatchNo}
+                      disabled={generatingBatchNo || batch.isActivated}
                     >
                       <SettingsIcon fontSize="small" />
                     </IconButton>
@@ -222,6 +222,7 @@ const UpdateBatchPage = () => {
                 hasError={!!errors.batchNo}
                 errorText={errors.batchNo}
                 fixedErrorSpace
+                disabled={batch.isActivated}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
@@ -262,7 +263,7 @@ const UpdateBatchPage = () => {
                     <IconButton
                       size="small"
                       onClick={handleGenerateBarcode}
-                      disabled={generatingBarcode}
+                      disabled={generatingBarcode || batch.isActivated}
                     >
                       <SettingsIcon fontSize="small" />
                     </IconButton>
@@ -271,6 +272,7 @@ const UpdateBatchPage = () => {
                 hasError={!!errors.barcode}
                 errorText={errors.barcode}
                 fixedErrorSpace
+                disabled={batch.isActivated}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>

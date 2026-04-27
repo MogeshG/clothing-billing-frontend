@@ -55,7 +55,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ batch, items, onAdd }) => {
     batch.expiryDate && dayjs(batch.expiryDate).diff(dayjs(), "day") <= 7;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-200 group">
+    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 group">
       {/* Header */}
       <div className="flex justify-between gap-3">
         <div className="flex-1">
@@ -70,10 +70,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ batch, items, onAdd }) => {
 
             {batch.expiryDate && (
               <span
-                className={`text-[11px] ${isExpiringSoon
-                  ? "text-red-600"
-                  : "text-orange-600"
-                  }`}
+                className={`text-[11px] ${
+                  isExpiringSoon ? "text-red-600" : "text-orange-600"
+                }`}
               >
                 Exp: {dayjs(batch.expiryDate).format("DD MMM")}
               </span>

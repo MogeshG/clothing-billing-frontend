@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+// import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import { useDispatch } from "react-redux";
 import { useProductCategories } from "../../../hooks/useProductCategories";
 import CustomSearch from "../../../components/CustomSearch";
@@ -41,7 +41,7 @@ const AddProductPage = () => {
   const [newVariant, setNewVariant] = useState<Partial<ProductVariantInput>>({
     size: "",
     color: "",
-    barcode: "",
+    // barcode: "",
     costPrice: 0,
     sellingPrice: 0,
     mrp: 0,
@@ -58,7 +58,7 @@ const AddProductPage = () => {
     setNewVariant({
       size: "",
       color: "",
-      barcode: "",
+      // barcode: "",
       costPrice: 0,
       sellingPrice: 0,
       mrp: 0,
@@ -73,8 +73,8 @@ const AddProductPage = () => {
     const variantErrorsList: Record<string, string> = {};
     if (!newVariant.size?.trim()) variantErrorsList.size = "Size required";
     if (!newVariant.color?.trim()) variantErrorsList.color = "Color required";
-    if (!newVariant.barcode?.trim())
-      variantErrorsList.barcode = "Barcode required";
+    // if (!newVariant.barcode?.trim())
+    //   variantErrorsList.barcode = "Barcode required";
     if (typeof newVariant.costPrice !== "number" || newVariant.costPrice! <= 0)
       variantErrorsList.costPrice = "Valid cost price required";
     if (
@@ -93,7 +93,7 @@ const AddProductPage = () => {
     const completeVariant: ProductVariantInput = {
       size: newVariant.size!,
       color: newVariant.color!,
-      barcode: newVariant.barcode!,
+      // barcode: newVariant.barcode!,
       sku: newVariant.sku || null,
       costPrice: newVariant.costPrice!,
       sellingPrice: newVariant.sellingPrice!,
@@ -195,7 +195,7 @@ const AddProductPage = () => {
         const vErrors: Record<string, string> = {};
         if (!variant.size.trim()) vErrors.size = "Size required";
         if (!variant.color.trim()) vErrors.color = "Color required";
-        if (!variant.barcode.trim()) vErrors.barcode = "Barcode required";
+        // if (!variant.barcode.trim()) vErrors.barcode = "Barcode required";
         if (variant.costPrice <= 0)
           vErrors.costPrice = "Valid cost price required";
         if (variant.sellingPrice <= 0)
@@ -222,7 +222,7 @@ const AddProductPage = () => {
     const transformedVariants = variants.map((v) => ({
       size: v.size,
       color: v.color,
-      barcode: v.barcode,
+      // barcode: v.barcode,
       sku: v.sku,
       cost_price: v.costPrice,
       selling_price: v.sellingPrice,
@@ -482,7 +482,7 @@ const AddProductPage = () => {
                         required
                       />
                     </Grid>
-                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    {/* <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                       <CustomInput
                         label="Barcode"
                         placeholder="Enter barcode"
@@ -495,11 +495,11 @@ const AddProductPage = () => {
                         endIcon={<QrCodeScannerIcon />}
                         required
                       />
-                    </Grid>
+                    </Grid> */}
                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                       <CustomInput
                         label="SKU"
-                        placeholder="Optional"
+                        placeholder="Enter SK"
                         value={newVariant.sku || ""}
                         onChange={(e) =>
                           updateNewVariant("sku", e.target.value)
@@ -591,9 +591,9 @@ const AddProductPage = () => {
                         <h4 className="font-medium">
                           {variant.size} - {variant.color}
                         </h4>
-                        <p className="text-sm text-gray-500">
+                        {/* <p className="text-sm text-gray-500">
                           Barcode: {variant.barcode}
-                        </p>
+                        </p> */}
                       </div>
                       <IconButton
                         size="small"
@@ -626,7 +626,7 @@ const AddProductPage = () => {
                           errorText={variantErrors[index]?.color}
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      {/* <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <CustomInput
                           label="Barcode"
                           value={variant.barcode}
@@ -636,7 +636,7 @@ const AddProductPage = () => {
                           hasError={!!variantErrors[index]?.barcode}
                           errorText={variantErrors[index]?.barcode}
                         />
-                      </Grid>
+                      </Grid> */}
                       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <CustomInput
                           label="SKU"

@@ -36,3 +36,20 @@ export function SectionLoader({ label = "Loading..." }: { label?: string }) {
     </div>
   );
 }
+
+export function InlineLoader({ label = "Loading..." }: { label?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 w-full min-h-[200px]">
+      <div className="relative flex items-center justify-center">
+        {/* Outer spinning ring */}
+        <div className="absolute h-14 w-14 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
+
+        {/* Inner pulse dot */}
+        <div className="h-6 w-6 rounded-full bg-blue-500 animate-pulse" />
+      </div>
+      <span className="mt-4 text-sm font-medium text-gray-500 animate-pulse">
+        {label}
+      </span>
+    </div>
+  );
+}
