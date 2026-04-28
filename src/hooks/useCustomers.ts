@@ -19,6 +19,8 @@ export const useCustomers = () => {
     error,
     selectedCustomers,
     refetch: () => dispatch(fetchCustomers()),
-    bulkCreateCustomers,
+    bulkCreateCustomers: (
+      customers: Parameters<typeof bulkCreateCustomers>[0],
+    ) => dispatch(bulkCreateCustomers(customers)),
   };
 };

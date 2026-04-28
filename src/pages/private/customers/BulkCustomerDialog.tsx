@@ -260,7 +260,7 @@ export default function BulkCustomerDialog({
           {/* ROW ERRORS */}
           {uploadErrors.length > 0 && (
             <Box>
-              <Typography variant="body2" fontWeight={600} className="mb-2">
+              <Typography variant="body2" className="mb-2 font-semibold">
                 Row Errors:
               </Typography>
 

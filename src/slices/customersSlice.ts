@@ -76,11 +76,13 @@ export const deleteCustomers = createAsyncThunk(
 export const bulkCreateCustomers = createAsyncThunk(
   "customers/bulkCreateCustomers",
   async (
-    _customers: Omit<Customer, "id" | "createdAt" | "updatedAt">[],
+    customers: Omit<Customer, "id" | "createdAt" | "updatedAt">[],
     { rejectWithValue },
   ) => {
     try {
-      const response = await api.get("/customers");
+      const response = await api.post("/customers/bulk", {
+        customers,
+      });
       return snakeToCamel(response.data) as Customer[];
     } catch (error) {
       const err = error as Error;

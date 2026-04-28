@@ -37,7 +37,21 @@ interface VariantRow {
   mrp: number;
 }
 
-const safeString = (value: unknown) => (value ? String(value).trim() : "");
+const safeString = (value: unknown) => {
+  if (!value) return "";
+  if (typeof value === "object" && value !== null) {
+    const richText = (value as any).richText;
+    if (Array.isArray(richText)) {
+      return richText
+        .map((t: any) => t.text || "")
+        .join("")
+        .trim();
+    }
+    return String((value as any).text ?? value).trim();
+  }
+  return String(value).trim();
+};
+
 const safeNumber = (value: unknown, defaultValue = 0): number => {
   const str = safeString(value);
   const num = parseFloat(str);
@@ -83,8 +97,11 @@ export default function BulkProductDialog({
       "description",
       "categoryName",
       "brand",
-      "gstPercent",
+      "cgstPercent",
+      "sgstPercent",
+      "igstPercent",
       "taxInclusive",
+      "isActive",
     ]);
     productSheet.getRow(1).font = { bold: true };
     productSheet.addRow([
@@ -94,7 +111,10 @@ export default function BulkProductDialog({
       "Premium cotton T-shirt",
       "T-Shirts",
       "BrandX",
-      5,
+      2.5,
+      2.5,
+      0,
+      true,
       true,
     ]);
     productSheet.columns = [
@@ -104,6 +124,9 @@ export default function BulkProductDialog({
       { width: 30 },
       { width: 15 },
       { width: 15 },
+      { width: 12 },
+      { width: 12 },
+      { width: 12 },
       { width: 12 },
       { width: 12 },
     ];
@@ -157,6 +180,7 @@ export default function BulkProductDialog({
       sgstPercent: number;
       igstPercent: number;
       taxInclusive: boolean;
+      isActive: boolean;
     }[] = [];
     const rowErrors: { row: number; errors: string[] }[] = [];
 
@@ -170,15 +194,21 @@ export default function BulkProductDialog({
       const description = safeString(row.getCell(4).value) || null;
       const categoryName = safeString(row.getCell(5).value);
       const brand = safeString(row.getCell(6).value) || null;
-      const gstPercent = safeNumber(row.getCell(7).value);
+      const cgstPercent = safeNumber(row.getCell(7).value);
+      const sgstPercent = safeNumber(row.getCell(8).value);
+      const igstPercent = safeNumber(row.getCell(9).value);
       const taxInclusive =
-        safeString(row.getCell(8).value).toLowerCase() === "true";
+        safeString(row.getCell(10).value).toLowerCase() === "true";
+      const isActive =
+        safeString(row.getCell(11).value).toLowerCase() !== "false";
 
       if (!name) err.push("Name is required");
       if (!sku) err.push("SKU is required for variant matching");
       if (!hsnCode) err.push("HSN Code is required");
       if (!categoryName) err.push("Category Name is required");
-      if (gstPercent < 0 || gstPercent > 100) err.push("GST % must be 0-100");
+      if (cgstPercent < 0 || cgstPercent > 28) err.push("CGST % must be 0-28");
+      if (sgstPercent < 0 || sgstPercent > 28) err.push("SGST % must be 0-28");
+      if (igstPercent < 0 || igstPercent > 28) err.push("IGST % must be 0-28");
 
       if (err.length > 0) {
         rowErrors.push({ row: rowNum, errors: err });
@@ -190,10 +220,11 @@ export default function BulkProductDialog({
           description,
           categoryName,
           brand,
-          cgstPercent: gstPercent / 2,
-          sgstPercent: gstPercent / 2,
-          igstPercent: 0,
+          cgstPercent,
+          sgstPercent,
+          igstPercent,
           taxInclusive,
+          isActive,
         });
       }
     });
@@ -336,23 +367,33 @@ export default function BulkProductDialog({
       }
 
       // Validate product sheet headers
-
       const expectedProductHeaders = [
         "name",
         "sku",
-        "hsnCode",
+        "hsncode",
         "description",
-        "categoryName",
+        "categoryname",
         "brand",
-        "gstPercent",
-        "taxInclusive",
+        "cgstpercent",
+        "sgstpercent",
+        "igstpercent",
+        "taxinclusive",
+        "isactive",
       ];
-      const productRow1 = productSheet.getRow(1) as any;
-      const productHeaders = (productRow1.values as any[]).slice(1) as string[];
-      const normalizedProduct = productHeaders.map((h) =>
-        safeString(h).toLowerCase(),
-      );
-      if (!expectedProductHeaders.every((h) => normalizedProduct.includes(h))) {
+      const normalize = (val: any) =>
+        String(val ?? "")
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "") // remove all spaces
+          .replace(/\u00A0/g, ""); // remove non-breaking space
+
+      const productHeaders: string[] = [];
+
+      productSheet.getRow(1).eachCell((cell: any) => {
+        productHeaders.push(normalize(cell.value));
+      });
+      console.log(productHeaders, expectedProductHeaders);
+      if (!expectedProductHeaders.every((h) => productHeaders.includes(h))) {
         throw new Error(
           `Products sheet must have headers: ${expectedProductHeaders.join(", ")}`,
         );
@@ -383,21 +424,20 @@ export default function BulkProductDialog({
         .filter(Boolean) as string[];
 
       // Validate variant sheet headers
-      const variantRow1 = variantSheet.getRow(1) as any;
-      const variantHeaders = (variantRow1.values as any[]).slice(1) as string[];
       const expectedVariantHeaders = [
-        "productSku",
+        "productsku",
         "size",
         "color",
         "sku",
-        "costPrice",
-        "sellingPrice",
+        "costprice",
+        "sellingprice",
         "mrp",
       ];
-      const normalizedVariant = variantHeaders.map((h) =>
-        safeString(h).toLowerCase(),
-      );
-      if (!expectedVariantHeaders.every((h) => normalizedVariant.includes(h))) {
+      const variantHeaders: string[] = [];
+      variantSheet.getRow(1).eachCell((cell: any) => {
+        variantHeaders.push(normalize(cell.value));
+      });
+      if (!expectedVariantHeaders.every((h) => variantHeaders.includes(h))) {
         throw new Error(
           `Variants sheet must have headers: ${expectedVariantHeaders.join(", ")}`,
         );

@@ -28,6 +28,10 @@ const InvoicesPage: React.FC = () => {
 
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [columnPinning, setColumnPinning] = useState({
+    left: ["mrt-row-select", "invoiceNo"],
+    right: ["totalAmount", "mrt-row-actions"],
+  });
 
   const allInvoices = useMemo(() => {
     const combined = [...invoices, ...drafts];
@@ -56,6 +60,7 @@ const InvoicesPage: React.FC = () => {
       {
         accessorKey: "invoiceNo",
         header: "Invoice No",
+        size: 250,
       },
       {
         accessorKey: "customerName",
@@ -131,6 +136,9 @@ const InvoicesPage: React.FC = () => {
         data={allInvoices}
         isLoading={loading}
         enableRowSelection={false}
+        enableColumnPinning
+        columnPinning={columnPinning}
+        onColumnPinningChange={setColumnPinning}
         enableRowActions
         renderRowActions={({ row }) => (
           <div className="flex gap-1">

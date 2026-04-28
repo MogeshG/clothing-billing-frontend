@@ -9,8 +9,8 @@ import {
   Button,
   Divider,
 } from "@mui/material";
-import { useDispatch, useSelector } from "react-redux";
-import { type AppDispatch, type RootState } from "../../../store";
+import { useDispatch } from "react-redux";
+import { type AppDispatch } from "../../../store";
 import { updateCustomer } from "../../../slices/customersSlice";
 import CustomButton from "../../../components/CustomButton";
 import CustomInput from "../../../components/CustomInput";
@@ -33,10 +33,7 @@ const EditCustomerDialog = ({
   onClose,
 }: EditCustomerDialogProps) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { refetch } = useCustomers();
-  const customers = useSelector(
-    (state: RootState) => state.customers.customers,
-  );
+  const { customers, refetch } = useCustomers();
 
   const customer = React.useMemo(
     () => customers.find((c) => c.id === customerId) || null,
