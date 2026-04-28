@@ -25,9 +25,7 @@ export const ProductCategoriesPage = lazy(
   () => import("../pages/private/product-categories/product-categories.tsx"),
 );
 
-export const UsersPage = lazy(
-  () => import("../pages/private/users/users.tsx"),
-);
+export const UsersPage = lazy(() => import("../pages/private/users/users.tsx"));
 export const AddUserPage = lazy(
   () => import("../pages/private/users/add-user.tsx"),
 );
@@ -77,4 +75,12 @@ export const NewStockAdjustmentPage = lazy(
 
 export const SettingsPage = lazy(
   () => import("../pages/private/settings/settings.tsx"),
+);
+
+export const SalesReturnPage = lazy(
+  () => import("../pages/private/sales/sales-return.tsx"),
+);
+
+export const CreateSalesReturnPage = lazy(
+  () => import("../pages/private/sales/create-sales-return.tsx"),
 );

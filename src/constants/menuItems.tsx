@@ -12,6 +12,7 @@ import CurrencyBitcoinOutlinedIcon from "@mui/icons-material/CurrencyBitcoinOutl
 import AllInboxOutlinedIcon from "@mui/icons-material/AllInboxOutlined";
 import CategoryIcon from "@mui/icons-material/CategoryOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import ReplyAllOutlinedIcon from "@mui/icons-material/ReplyAllOutlined";
 import StoreIcon from "@mui/icons-material/Store";
 import {
   EditOutlined,
@@ -53,26 +54,11 @@ export const MENU_ITEMS: MenuItem[] = [
         icon: <ReceiptIcon />,
         module: "Sales",
       },
-    ],
-  },
-
-  {
-    title: "Suppliers",
-    href: "/vendors",
-    icon: <StoreIcon />,
-    module: "Suppliers",
-    children: [
       {
-        title: "Vendors",
-        href: "/vendors",
-        icon: <PersonOutlined />,
-        module: "Suppliers",
-      },
-      {
-        title: "Purchases",
-        href: "/purchases",
-        icon: <ShoppingCartOutlined />,
-        module: "Suppliers",
+        title: "Sales Return",
+        href: "/sales/sales-return",
+        icon: <ReplyAllOutlinedIcon />,
+        module: "Sales",
       },
     ],
   },
@@ -99,6 +85,27 @@ export const MENU_ITEMS: MenuItem[] = [
         href: "/stock-movements",
         icon: <ReceiptIcon />,
         module: "Stocks",
+      },
+    ],
+  },
+
+  {
+    title: "Suppliers",
+    href: "/vendors",
+    icon: <StoreIcon />,
+    module: "Suppliers",
+    children: [
+      {
+        title: "Vendors",
+        href: "/vendors",
+        icon: <PersonOutlined />,
+        module: "Suppliers",
+      },
+      {
+        title: "Purchases",
+        href: "/purchases",
+        icon: <ShoppingCartOutlined />,
+        module: "Suppliers",
       },
     ],
   },

@@ -16,6 +16,7 @@ interface AppState {
   isAuthenticated: boolean;
   authLoading: boolean;
   user: User | null;
+  openMenus: string[];
 }
 
 const initialState: AppState = {
@@ -24,6 +25,7 @@ const initialState: AppState = {
   isAuthenticated: false,
   authLoading: false,
   user: null,
+  openMenus: [],
 };
 
 const appSlice = createSlice({
@@ -47,6 +49,18 @@ const appSlice = createSlice({
       state.isAuthenticated = false;
       state.user = null;
     },
+    toggleOpenMenu: (state, action) => {
+      const href = action.payload;
+      const index = state.openMenus.indexOf(href);
+      if (index >= 0) {
+        state.openMenus.splice(index, 1);
+      } else {
+        state.openMenus.push(href);
+      }
+    },
+    setOpenMenus: (state, action) => {
+      state.openMenus = action.payload;
+    },
   },
 });
 
@@ -56,7 +70,8 @@ export const {
   setAuthenticated,
   setUser,
   logout,
+  toggleOpenMenu,
+  setOpenMenus,
 } = appSlice.actions;
 
 export default appSlice.reducer;
-

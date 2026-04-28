@@ -1,30 +1,42 @@
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "../store";
 import { MENU_ITEMS } from "../constants/menuItems";
-import { useState, useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import MenuItem from "../components/MenuItem";
 import { usePermissions } from "../hooks/usePermissions";
+import { useLocation } from "react-router-dom";
+import { toggleOpenMenu } from "../slices/appSlice";
 
 const Sidebar = () => {
+  const dispatch = useDispatch();
   const sideBarCollapsed = useSelector(
     (state: RootState) => state.app.sideBarCollapsed,
   );
+  const openMenus = useSelector(
+    (state: RootState) => state.app.openMenus,
+  );
   const { canRead } = usePermissions();
+  const location = useLocation();
 
-  const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
-
-  const toggleItem = (href: string) => {
-    setOpenMenus((prev) => {
-      const next = new Set(prev);
-
-      if (next.has(href)) {
-        next.delete(href);
-      } else {
-        next.add(href);
+  // Auto-expand parent menu when navigating to a child route
+  useEffect(() => {
+    const currentPath = location.pathname;
+    MENU_ITEMS.forEach((item) => {
+      if (item.children && item.children.length > 0) {
+        const isChildActive = item.children.some(
+          (child) =>
+            currentPath === child.href ||
+            currentPath.startsWith(child.href + "/"),
+        );
+        if (isChildActive && !openMenus.includes(item.href)) {
+          dispatch(toggleOpenMenu(item.href));
+        }
       }
-
-      return next;
     });
+  }, [location.pathname]);
+
+  const handleToggleItem = (href: string) => {
+    dispatch(toggleOpenMenu(href));
   };
 
   // Filter menu items based on read permission
@@ -77,8 +89,8 @@ const Sidebar = () => {
               key={item.href}
               item={item}
               collapsed={sideBarCollapsed}
-              openMenus={openMenus}
-              toggleItem={toggleItem}
+              openMenus={new Set(openMenus)}
+              toggleItem={handleToggleItem}
             />
           ))}
         </ul>

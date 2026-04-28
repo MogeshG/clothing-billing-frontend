@@ -49,13 +49,11 @@ function transformToCamelCase(obj: any): any {
 
 export const fetchProducts = createAsyncThunk(
   "products/fetchProducts",
-  async (
-    {
-      search = "",
-      page = 1,
-      limit = 50,
-    }: { search?: string; page?: number; limit?: number } = {},
-  ) => {
+  async ({
+    search = "",
+    page = 1,
+    limit = 50,
+  }: { search?: string; page?: number; limit?: number } = {}) => {
     const params = new URLSearchParams({
       ...(search && { search }),
       page: page.toString(),
@@ -113,6 +111,43 @@ export const deleteProducts = createAsyncThunk(
   },
 );
 
+export const bulkCreateProducts = createAsyncThunk(
+  "products/bulkCreateProducts",
+  async (products: AddProductForm[], { rejectWithValue }) => {
+    try {
+      const payload = products.map((p) => ({
+        name: p.name,
+        sku: p.sku,
+        hsn_code: p.hsnCode,
+        description: p.description,
+        category_name: p.categoryName || p.categoryId,
+        brand: p.brand,
+        cgst_percent: p.cgstPercent,
+        sgst_percent: p.sgstPercent,
+        igst_percent: p.igstPercent,
+        tax_inclusive: p.taxInclusive,
+        variants: p.variants.map((v) => ({
+          size: v.size,
+          color: v.color,
+          sku: v.sku,
+          cost_price: v.costPrice,
+          selling_price: v.sellingPrice,
+          mrp: v.mrp,
+        })),
+      }));
+      const response = await api.post("/products/bulk", { products: payload });
+      return {
+        products: response.data.products.map((p: any) =>
+          transformToCamelCase(p),
+        ),
+      };
+    } catch (error) {
+      const err = error as Error;
+      return rejectWithValue(err.message || "Failed to bulk create products");
+    }
+  },
+);
+
 const productsSlice = createSlice({
   name: "products",
   initialState,
@@ -165,10 +200,16 @@ const productsSlice = createSlice({
       })
       .addCase(deleteProducts.rejected, (state, action) => {
         state.error = action.payload as string;
+      })
+      .addCase(bulkCreateProducts.fulfilled, (state, action) => {
+        state.products = [...action.payload.products, ...state.products];
+        state.error = null;
+      })
+      .addCase(bulkCreateProducts.rejected, (state, action) => {
+        state.error = action.payload as string;
       });
   },
 });
 
 export const { clearError, setSelectedProducts } = productsSlice.actions;
 export default productsSlice.reducer;
-

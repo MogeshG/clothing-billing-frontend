@@ -26,9 +26,11 @@ import {
   VendorsPage,
   ViewPurchasePage,
   SettingsPage,
+  SalesReturnPage,
+  CreateSalesReturnPage,
 } from "./pages";
 import POSPage from "../pages/private/pos/pos";
-import InvoicesPage from "../pages/private/sales/invoices";
+import InvoicesPage from "../pages/private/invoices/invoices";
 import Loader from "../components/CustomLoader";
 
 export const publicRoutes = [
@@ -151,6 +153,14 @@ export const privateRoutes = [
       {
         path: "sales/invoices",
         element: <InvoicesPage />,
+      },
+      {
+        path: "sales/sales-return",
+        element: <SalesReturnPage />,
+      },
+      {
+        path: "sales/sales-return/create",
+        element: <CreateSalesReturnPage />,
       },
       {
         path: "settings",

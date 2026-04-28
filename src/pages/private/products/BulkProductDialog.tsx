@@ -18,7 +18,6 @@ import ExcelJS from "exceljs";
 import { useProducts } from "../../../hooks/useProducts";
 import type {
   AddProductForm,
-  Product,
   ProductVariantInput,
 } from "../../../types/product";
 
@@ -32,7 +31,6 @@ interface VariantRow {
   productSku: string;
   size: string;
   color: string;
-  barcode: string;
   sku?: string | null;
   costPrice: number;
   sellingPrice: number;
@@ -77,14 +75,13 @@ export default function BulkProductDialog({
   const downloadTemplate = useCallback(async () => {
     const workbook = new ExcelJS.Workbook();
 
-    // Sheet 1: Products
     const productSheet = workbook.addWorksheet("Products");
     productSheet.addRow([
       "name",
       "sku",
       "hsnCode",
       "description",
-      "categoryId",
+      "categoryName",
       "brand",
       "gstPercent",
       "taxInclusive",
@@ -95,7 +92,7 @@ export default function BulkProductDialog({
       "TS001",
       "61091000",
       "Premium cotton T-shirt",
-      "cat1",
+      "T-Shirts",
       "BrandX",
       5,
       true,
@@ -111,44 +108,23 @@ export default function BulkProductDialog({
       { width: 12 },
     ];
 
-    // Sheet 2: Variants
     const variantSheet = workbook.addWorksheet("Variants");
     variantSheet.addRow([
       "productSku",
       "size",
       "color",
-      "barcode",
       "sku",
       "costPrice",
       "sellingPrice",
       "mrp",
     ]);
     variantSheet.getRow(1).font = { bold: true };
-    variantSheet.addRow([
-      "TS001",
-      "M",
-      "Blue",
-      "123456789012",
-      "TS001-M-BL",
-      100,
-      120,
-      150,
-    ]);
-    variantSheet.addRow([
-      "TS001",
-      "L",
-      "Red",
-      "123456789013",
-      "TS001-L-RD",
-      100,
-      120,
-      150,
-    ]);
+    variantSheet.addRow(["TS001", "M", "Blue", "TS001-M-BL", 100, 120, 150]);
+    variantSheet.addRow(["TS001", "L", "Red", "TS001-L-RD", 100, 120, 150]);
     variantSheet.columns = [
       { width: 15 },
       { width: 10 },
       { width: 12 },
-      { width: 18 },
       { width: 15 },
       { width: 12 },
       { width: 12 },
@@ -170,16 +146,18 @@ export default function BulkProductDialog({
   }, []);
 
   const validateProductsSheet = useCallback((rows: any[]) => {
-    const validRows: Omit<
-      Product,
-      | "id"
-      | "createdAt"
-      | "updatedAt"
-      | "categoryName"
-      | "isActive"
-      | "isDeleted"
-      | "variant"
-    >[] = [];
+    const validRows: {
+      name: string;
+      sku?: string;
+      hsnCode: string;
+      description?: string | null;
+      categoryName: string;
+      brand?: string | null;
+      cgstPercent: number;
+      sgstPercent: number;
+      igstPercent: number;
+      taxInclusive: boolean;
+    }[] = [];
     const rowErrors: { row: number; errors: string[] }[] = [];
 
     rows.forEach((row, index) => {
@@ -190,7 +168,7 @@ export default function BulkProductDialog({
       const sku = safeString(row.getCell(2).value);
       const hsnCode = safeString(row.getCell(3).value);
       const description = safeString(row.getCell(4).value) || null;
-      const categoryId = safeString(row.getCell(5).value);
+      const categoryName = safeString(row.getCell(5).value);
       const brand = safeString(row.getCell(6).value) || null;
       const gstPercent = safeNumber(row.getCell(7).value);
       const taxInclusive =
@@ -199,7 +177,7 @@ export default function BulkProductDialog({
       if (!name) err.push("Name is required");
       if (!sku) err.push("SKU is required for variant matching");
       if (!hsnCode) err.push("HSN Code is required");
-      if (!categoryId) err.push("Category ID is required");
+      if (!categoryName) err.push("Category Name is required");
       if (gstPercent < 0 || gstPercent > 100) err.push("GST % must be 0-100");
 
       if (err.length > 0) {
@@ -210,9 +188,11 @@ export default function BulkProductDialog({
           sku,
           hsnCode,
           description,
-          categoryId,
+          categoryName,
           brand,
-          gstPercent,
+          cgstPercent: gstPercent / 2,
+          sgstPercent: gstPercent / 2,
+          igstPercent: 0,
           taxInclusive,
         });
       }
@@ -241,11 +221,10 @@ export default function BulkProductDialog({
         const productSku = safeString(row.getCell(1).value);
         const size = safeString(row.getCell(2).value);
         const color = safeString(row.getCell(3).value);
-        const barcode = safeString(row.getCell(4).value);
-        const sku = safeString(row.getCell(5).value) || null;
-        const costPrice = safeNumber(row.getCell(6).value);
-        const sellingPrice = safeNumber(row.getCell(7).value);
-        const mrp = safeNumber(row.getCell(8).value);
+        const sku = safeString(row.getCell(4).value) || null;
+        const costPrice = safeNumber(row.getCell(5).value);
+        const sellingPrice = safeNumber(row.getCell(6).value);
+        const mrp = safeNumber(row.getCell(7).value);
 
         if (!productSku) err.push("Product SKU is required");
         else if (!productSkus.includes(productSku)) {
@@ -254,7 +233,6 @@ export default function BulkProductDialog({
         }
         if (!size) err.push("Size is required");
         if (!color) err.push("Color is required");
-        if (!barcode) err.push("Barcode is required");
         if (costPrice <= 0) err.push("Cost Price must be > 0");
         if (sellingPrice <= 0) err.push("Selling Price must be > 0");
         if (mrp <= 0) err.push("MRP must be > 0");
@@ -266,7 +244,6 @@ export default function BulkProductDialog({
             productSku,
             size,
             color,
-            barcode,
             sku,
             costPrice,
             sellingPrice,
@@ -292,20 +269,17 @@ export default function BulkProductDialog({
         };
       } = {};
 
-      // Build products map
       productRows.forEach((p) => {
         const sku = p.sku || "";
         productsMap[sku] = { product: p, variants: [] };
       });
 
-      // Attach variants
       variantRows.forEach((v) => {
         const sku = v.productSku;
         if (productsMap[sku]) {
           productsMap[sku].variants.push({
             size: v.size,
             color: v.color,
-            barcode: v.barcode,
             sku: v.sku,
             costPrice: v.costPrice,
             sellingPrice: v.sellingPrice,
@@ -314,7 +288,6 @@ export default function BulkProductDialog({
         }
       });
 
-      // Convert to array
       return Object.values(productsMap).map(({ product, variants }) => ({
         ...product,
         variants,
@@ -355,7 +328,6 @@ export default function BulkProductDialog({
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(await file.arrayBuffer());
 
-      // Get sheets by name
       const productSheet = workbook.getWorksheet("Products");
       const variantSheet = workbook.getWorksheet("Variants");
 
@@ -364,17 +336,19 @@ export default function BulkProductDialog({
       }
 
       // Validate product sheet headers
-      const productHeaders = productSheet.getRow(1).values.slice(1) as string[];
+
       const expectedProductHeaders = [
         "name",
         "sku",
         "hsnCode",
         "description",
-        "categoryId",
+        "categoryName",
         "brand",
         "gstPercent",
         "taxInclusive",
       ];
+      const productRow1 = productSheet.getRow(1) as any;
+      const productHeaders = (productRow1.values as any[]).slice(1) as string[];
       const normalizedProduct = productHeaders.map((h) =>
         safeString(h).toLowerCase(),
       );
@@ -409,12 +383,12 @@ export default function BulkProductDialog({
         .filter(Boolean) as string[];
 
       // Validate variant sheet headers
-      const variantHeaders = variantSheet.getRow(1).values.slice(1) as string[];
+      const variantRow1 = variantSheet.getRow(1) as any;
+      const variantHeaders = (variantRow1.values as any[]).slice(1) as string[];
       const expectedVariantHeaders = [
         "productSku",
         "size",
         "color",
-        "barcode",
         "sku",
         "costPrice",
         "sellingPrice",
@@ -450,7 +424,7 @@ export default function BulkProductDialog({
 
       // Build final products with nested variants
       const finalProducts = buildProductsWithVariants(
-        validProducts,
+        validProducts as unknown as Omit<AddProductForm, "variants">[],
         validVariants,
       );
 

@@ -5,7 +5,9 @@ import {
   fetchProducts,
   clearError,
   setSelectedProducts,
+  bulkCreateProducts,
 } from "../slices/productsSlice";
+import type { AddProductForm } from "../types/product";
 
 export const useProducts = (
   page: number = 1,
@@ -29,5 +31,7 @@ export const useProducts = (
     refetch: () => dispatch(fetchProducts({ page, limit, search })),
     clearError: () => dispatch(clearError()),
     setSelectedProducts: (ids: string[]) => dispatch(setSelectedProducts(ids)),
+    bulkCreateProducts: (products: AddProductForm[]) =>
+      dispatch(bulkCreateProducts(products)),
   };
 };

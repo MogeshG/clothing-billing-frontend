@@ -13,6 +13,7 @@ import {
 import { useInvoices } from "../../../hooks/useInvoices";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../../store";
+import { usePreferences } from "../../../hooks/usePreferences";
 
 const ViewInvoiceDrawer = ({
   invoice,
@@ -25,6 +26,7 @@ const ViewInvoiceDrawer = ({
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { generateBill, billHtml, clearBillHtml } = useInvoices();
+  const { preferences } = usePreferences();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [iframeSrc, setIframeSrc] = useState("");
@@ -76,7 +78,10 @@ const ViewInvoiceDrawer = ({
       onClose={onClose}
       sx={{
         "& .MuiDrawer-paper": {
-          width: { xs: "100%", md: 800 },
+          width: {
+            xs: "100%",
+            md: preferences.invoiceType === "thermal" ? 450 : 800,
+          },
         },
       }}
     >

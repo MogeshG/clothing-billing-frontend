@@ -13,7 +13,6 @@ import { useInvoices } from "../../../hooks/useInvoices";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../../store";
 import PermissionGuard from "../../../components/PermissionGuard";
-import { InlineLoader } from "../../../components/CustomLoader";
 
 const InvoicesPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -127,8 +126,6 @@ const InvoicesPage: React.FC = () => {
         </Alert>
       )}
 
-      {loading && <InlineLoader label="Loading invoices..." />}
-
       <CustomTable
         columns={columns}
         data={allInvoices}
@@ -144,6 +141,14 @@ const InvoicesPage: React.FC = () => {
                 setDrawerOpen(true);
               }}
               title="View Invoice"
+              sx={{
+                border: "1px solid",
+                borderColor: "secondary.main",
+                color: "secondary.main",
+                borderRadius: 1,
+                width: 36,
+                height: 36,
+              }}
             >
               <VisibilityIcon fontSize="small" />
             </IconButton>

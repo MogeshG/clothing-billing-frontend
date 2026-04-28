@@ -54,7 +54,8 @@ export type AddProductForm = {
   sku?: string;
   hsnCode: string;
   description?: string | null;
-  categoryId: string;
+  categoryId?: string;
+  categoryName?: string;
   brand?: string | null;
   cgstPercent: number;
   sgstPercent: number;
